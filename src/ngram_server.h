@@ -1,0 +1,37 @@
+// $Id: ngram_server.h 9080 2011-03-23 10:34:23Z pberck $
+
+/*****************************************************************************
+ * Copyright 2010 - 2011 Peter Berck                                                *
+ *                                                                           *
+ * This file is part of Wopr.                                                *
+ *                                                                           *
+ * Wopr is free software; you can redistribute it and/or modify it           *
+ * under the terms of the GNU General Public License as published by the     *
+ * Free Software Foundation; either version 2 of the License, or (at your    *
+ * option) any later version.                                                *
+ *                                                                           *
+ * Wopr is distributed in the hope that it will be useful, but WITHOUT       *
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or     *
+ * FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License      *
+ * for more details.                                                         *
+ *                                                                           *
+ * You should have received a copy of the GNU General Public License         *
+ * along with Wopr; if not, write to the Free Software Foundation,           *
+ * Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA               *
+ *****************************************************************************/
+
+// ----------------------------------------------------------------------------
+
+#ifndef _ngram_server_h
+#define _ngram_server_h
+
+#include <string>
+#include <vector>
+
+#include "Config.h"
+
+// ----------------------------------------------------------------------------
+
+int ngram_server( Logfile&, Config& );
+
+#endif

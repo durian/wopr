@@ -1,0 +1,41 @@
+Info
+====
+
+Run 'sh bootstrap' first if starting with a fresh checkout.
+
+
+General
+=======
+
+./configure
+make
+
+With a local Timbl installation:
+
+./configure --prefix=/home/pberck/local --with-timbl=/home/pberck/local
+make
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/pberck/local/lib
+
+If Timbl has been installed system-wide, the configure script should be
+able to find it without the --with-timbl invocation.
+
+Timbl support can be explicitly disabled by specifying --without-timbl. You 
+will be left with a Wopr which can create data sets and run an n-gram
+language mode.
+
+OS X
+====
+
+./configure --with-timbl=/Users/pberck/install/
+
+Debian 
+======
+
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib
+
+seems to be needed when the libraries are installed in the default
+place. If not, the following is needed (with the correct path filled
+in):
+
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/pberck/local/lib
+
