@@ -29,6 +29,8 @@ wopr_SOURCES = \
 	src/levenshtein.h \
 	src/generator.h \
 	src/generator.cc \
+	src/prededit.h \
+	src/prededit.cc \
 	src/lcontext.cc \
 	src/lcontext.h \
 	src/focus.h \
