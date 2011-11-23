@@ -165,6 +165,9 @@ int pdt( Logfile& l, Config& c ) {
   const Timbl::ValueDistribution *vd;
   const Timbl::TargetValue *tv;
   std::vector<std::string> words;
+  std::vector<std::string>::iterator wi;
+  std::vector<std::string> predictions;
+  std::vector<std::string>::iterator pi;
   int correct = 0;
   int wrong   = 0;
   int correct_unknown = 0;
@@ -184,7 +187,6 @@ int pdt( Logfile& l, Config& c ) {
   int total_choices = 0;
   // abf, average branching factor?
 
-  std::stringstream s;
   int ctx_size = lc+rc;
   Context ctx(ctx_size);
   std::vector<distr_elem> res;
@@ -193,15 +195,42 @@ int pdt( Logfile& l, Config& c ) {
   //std::vector<std::string>::iterator it_endm1 = ctx.begin();
   //advance(it_end,4);
 
+  int length = 4; // length of each predicted string
+  std::vector<int> depths(10, 1);
+  depths.at(length) = 5;
+  //depths.at(length-1) = 2;
+  //depths.at(1) = 3;
+
+  file_out << "# l" << length;
+  for ( int i = length; i > 0; i-- ) {
+    file_out << " " << depths.at(i); // choices per 'column'
+  }
+  file_out << std::endl;
+
+  size_t sentence_count = 0;
+  size_t prediction_count = 0;
+  size_t instance_count = 0;
   while( std::getline( file_in, a_line ) ) { 
     if ( a_line == "" ) {
       continue;
     }
-    s << a_line;
+    
+    words.clear();
+    Tokenize( a_line, words );
+
+    // Print the sentence, with counts:
+    // S0000 we sat and waited for the woman
+    //
+    file_out << "S" << std::setfill('0') << std::setw(4) << sentence_count << " "; 
+    file_out << a_line << std::endl;
+
+    instance_count = 0;
 
     // each word in sentence
     //
-    while (s >> token) {
+    for ( int i = 0; i < words.size(); i++ ) {
+
+      token = words.at(i);
 
       // We got word 'token' (pretend we just pressed space).
       // Add to context, and call wopr.
@@ -225,7 +254,8 @@ int pdt( Logfile& l, Config& c ) {
       //
       // NADEEL: this cannot use right context...only advantage is tribl2...?
       //         unless we shift instance bases after having generated the first 
-      //         right context.
+      //         right context. Tribl2 no use either, we generate self, never
+      //         any unknown words in context.
       //
       // IDEA: generated sentences to compare to sentence to be LM'd, if
       // it can be generated, it gets extra score, or score based on 
@@ -233,19 +263,62 @@ int pdt( Logfile& l, Config& c ) {
       //
       std::vector<std::string> strs; // should be a struct with more stuff
       std::string t;
-      int length = 5; // length of each predicted string
-      std::vector<int> depths(10, 1);
-      depths.at(length) = 3;
-      depths.at(length-1) = 2;
       generate_tree( My_Experiment, c, ctx, strs, length, depths, t );
+
+      // Print the instance, plus number of patterns found:
+      // I0000.0004 waited for 5
+      //
+      file_out << "I" << std::setfill('0') << std::setw(4) << sentence_count << "." 
+	       << std::setfill('0') << std::setw(4) << instance_count << " "; 
       file_out << ctx << " " << strs.size() << std::endl;
+
       std::vector<std::string>::iterator si = strs.begin();
+      prediction_count = 0;
       while ( si != strs.end() ) {
-	file_out << "P:" << (*si) << std::endl;
+
+	// We should check if the prediction matches the original sentence.
+	// We compare word by word in the sentence and the predicted sequence.
+	// keep matching until we mismatch, we don't match "over" mismatched
+	// words.
+	//
+	predictions.clear();
+	Tokenize( (*si), predictions );
+	pi = predictions.begin(); //start at first word of predicted sequence
+	wi = words.begin(); // start at current word in sentence
+	advance( wi, i+1 ); //advance to next word in sentence (PJB optimise)
+	bool mismatched = false;
+	std::string matched;
+	while ( (pi != predictions.end()) && (wi != words.end()) && ( ! mismatched) ) {
+	  //l.log( (*pi) + "--" + (*wi) );
+	  if ( (*pi) == (*wi) ) {
+	    l.log( "MATCH: " + to_str(prediction_count) + " " + (*pi)  );
+	    matched = matched + (*pi) + " ";
+	  } else {
+	    mismatched = true;
+	  }
+	  pi++;
+	  wi++;
+	}
+
+	// P0000.0004.0004 his sake and
+	file_out << "P" << std::setfill('0') << std::setw(4) << sentence_count << "." 
+		 << std::setfill('0') << std::setw(4) << instance_count << "." 
+		 << std::setfill('0') << std::setw(4) << prediction_count << (*si) << std::endl;
+
+	if ( matched != "" ) {
+	  file_out << "M" << std::setfill('0') << std::setw(4) << sentence_count << "." 
+		   << std::setfill('0') << std::setw(4) << instance_count << "." 
+		   << std::setfill('0') << std::setw(4) << prediction_count 
+		   << " " << matched << std::endl;
+	}
+
+	prediction_count++;
 	si++;
       }
       strs.clear();
       
+      ++instance_count;
+
       // Stuff next 5 results in res.
       //
       /*
@@ -265,7 +338,8 @@ int pdt( Logfile& l, Config& c ) {
       std::cerr << "]\n";
       */
     }
-    s.clear();
+
+    ++sentence_count;
   }
 
   return 0;
@@ -347,7 +421,7 @@ void generate_tree( Timbl::TimblAPI* My_Experiment, Config& c, Context& ctx, std
 
   // std::cerr << "RESSIZE=" << res.size() << std::endl;
   // Should have a limit on res.size(), default distr. is crap, no use
-  // to continue with that.
+  // to continue with that. default happens not often, self generated instances.
   //
   /*  if ( res.size() > 10000 ) {
     return;
