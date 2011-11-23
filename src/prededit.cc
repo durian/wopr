@@ -79,6 +79,10 @@
   Predictive Editing.
 
   ./wopr -r pdt -p ibasefile:test/reuters.martin.tok.1e5.l2r0_-a1+D.ibase,timbl:"-a1 +D",filename:test/abc.txt
+
+  ./wopr -r pdt -p ibasefile:./test/reuters.martin.tok.1e5.l2r0_-a1+D.ibase,timbl:"-a1 +D",filename:test/zin01,lc:2
+
+  ./wopr -r pdt -p ibasefile:./test/distr/austen.train.l2r0_-a1+D.ibase,timbl:"-a1 +D",filename:test/zin01,lc:2
 */
 #ifdef TIMBL
 struct distr_elem {
@@ -89,8 +93,12 @@ struct distr_elem {
     return freq > rhs.freq;
   }
 };
+struct salad_elem {
+  std::string str;
+  // array with the words? frequency? distr_elems?
+};
 void generate_next( Timbl::TimblAPI*, Config&, std::string, std::vector<distr_elem>& );
-void generate_tree( Timbl::TimblAPI*, Config&, Context&, std::vector<std::string>&, int, std::string );
+void generate_tree( Timbl::TimblAPI*, Config&, Context&, std::vector<std::string>&, int, std::vector<int>&, std::string );
 
 int pdt( Logfile& l, Config& c ) {
   l.log( "predictive editing" );
@@ -216,21 +224,31 @@ int pdt( Logfile& l, Config& c ) {
       // TEST
       //
       // NADEEL: this cannot use right context...only advantage is tribl2...?
-      //         unless we shift instance bases after hving generated the first 
+      //         unless we shift instance bases after having generated the first 
       //         right context.
       //
-      std::vector<std::string> strs;
+      // IDEA: generated sentences to compare to sentence to be LM'd, if
+      // it can be generated, it gets extra score, or score based on 
+      // choices every word. That was already an idea.
+      //
+      std::vector<std::string> strs; // should be a struct with more stuff
       std::string t;
-      generate_tree( My_Experiment, c, ctx, strs, 3, t );
+      int length = 5; // length of each predicted string
+      std::vector<int> depths(10, 1);
+      depths.at(length) = 3;
+      depths.at(length-1) = 2;
+      generate_tree( My_Experiment, c, ctx, strs, length, depths, t );
+      file_out << ctx << " " << strs.size() << std::endl;
       std::vector<std::string>::iterator si = strs.begin();
       while ( si != strs.end() ) {
-	l.log( (*si) );
+	file_out << "P:" << (*si) << std::endl;
 	si++;
       }
       strs.clear();
       
       // Stuff next 5 results in res.
       //
+      /*
       res.clear();
       std::string instance = ctx.toString() + " ?";
       generate_next( My_Experiment, c, instance, res );
@@ -245,7 +263,7 @@ int pdt( Logfile& l, Config& c ) {
 	fi++;
       }
       std::cerr << "]\n";
-      
+      */
     }
     s.clear();
   }
@@ -305,9 +323,9 @@ void generate_next( Timbl::TimblAPI* My_Experiment, Config& c, std::string insta
 
 // Recursive?
 //
-void generate_tree( Timbl::TimblAPI* My_Experiment, Config& c, Context& ctx, std::vector<std::string>& strs, int depth, std::string t ) {
+void generate_tree( Timbl::TimblAPI* My_Experiment, Config& c, Context& ctx, std::vector<std::string>& strs, int length, std::vector<int>& depths, std::string t ) {
 
-  if ( depth == 0 ) {
+  if ( length == 0 ) {
     // here we should save/print the whole "string" (?)
     //std::cout << "STRING: " << t << std::endl;
     strs.push_back( t );
@@ -326,24 +344,30 @@ void generate_tree( Timbl::TimblAPI* My_Experiment, Config& c, Context& ctx, std
   std::string instance = ctx.toString() + " ?";
   std::vector<distr_elem> res;
   generate_next( My_Experiment, c, instance, res );
-  //std::cerr << "RESSIZE=" << res.size() << std::endl;
+
+  // std::cerr << "RESSIZE=" << res.size() << std::endl;
+  // Should have a limit on res.size(), default distr. is crap, no use
+  // to continue with that.
+  //
+  /*  if ( res.size() > 10000 ) {
+    return;
+    }*/
 
   sort( res.begin(), res.end() );
   std::vector<distr_elem>::iterator fi = res.begin();
-  int cnt = 3;
+  int cnt = depths.at( length );
   while ( (fi != res.end()) && (--cnt >= 0) ) { 
     
-    //for ( int i = 5-depth; i > 0; i--) { std::cout << "  ";}
-    //std::cerr << depth << ":" << cnt  << " " << ctx << " -> " << (*fi).name /* << ' ' << (*fi).freq */ << std::endl;
+    //for ( int i = 5-length; i > 0; i--) { std::cout << "  ";}
+    //std::cerr << length << ":" << cnt  << " " << ctx << " -> " << (*fi).name /* << ' ' << (*fi).freq */ << std::endl;
 
     // Make new context, recurse
     //
     Context new_ctx = Context(ctx);
     new_ctx.push(  (*fi).name );
 
-    //std::cerr << "Recurse down to " << depth-1 << " with " << new_ctx << std::endl;
-    generate_tree( My_Experiment, c, new_ctx, strs, depth-1, t+" "+(*fi).name );
-
+    generate_tree( My_Experiment, c, new_ctx, strs, length-1, depths, t+" "+(*fi).name );//+"/"+to_str(res.size()) );
+    
     fi++;
   }
   
