@@ -1,4 +1,4 @@
-// $Id: util.cc 9080 2011-03-23 10:34:23Z pberck $
+// $Id: util.cc 13579 2011-11-25 07:48:01Z pberck $
 
 /*****************************************************************************
  * Copyright 2005 - 2011 Peter Berck                                         *
@@ -40,6 +40,7 @@
 #include <unistd.h>
 #include <errno.h>
 #include <regex.h>
+#include <inttypes.h>
 
 #include <stdlib.h>  
 #include <string.h>  
@@ -57,8 +58,15 @@
 /*!
   Converts a string to an integer (atoi)
 */
-int stoi(const std::string& str) {
-  int i = atoi( str.c_str() );
+int stoi(const std::string& str ) {
+  //int i = atoi( str.c_str() );
+  int i = (int)strtoimax( str.c_str(), NULL, 10 );
+  return( i );
+}
+
+int stoi(const std::string& str, int b) {
+  //int i = atoi( str.c_str() );
+  int i = (int)strtoimax( str.c_str(), NULL, b );
   return( i );
 }
 

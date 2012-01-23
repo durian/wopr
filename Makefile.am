@@ -29,6 +29,8 @@ wopr_SOURCES = \
 	src/levenshtein.h \
 	src/generator.h \
 	src/generator.cc \
+	src/Context.h \
+	src/Context.cc \
 	src/prededit.h \
 	src/prededit.cc \
 	src/lcontext.cc \
@@ -49,7 +51,11 @@ wopr_SOURCES = \
 	src/SocketBasics.h \
 	src/SocketBasics.cc \
 	src/MersenneTwister.h \
-	src/cache.h
+	src/cache.h \
+	src/tinyxml.h \
+	src/tinyxml.cpp \
+	src/tinyxmlparser.cpp \
+	src/tinyxmlerror.cpp
 
 woprsm_SOURCES = \
 	src/woprsm.cc

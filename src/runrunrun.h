@@ -1,4 +1,4 @@
-// $Id: runrunrun.h 9080 2011-03-23 10:34:23Z pberck $
+// $Id: runrunrun.h 13723 2011-12-19 11:47:30Z pberck $
 //
 
 /*****************************************************************************
@@ -46,6 +46,7 @@ int tst( Logfile&, Config& );
 int cut( Logfile&, Config& );
 int flatten( Logfile&, Config& );
 int lowercase( Logfile&, Config& );
+int letters( Logfile&, Config& );
 int window( Logfile&, Config& );
 int window_s( Logfile&, Config& );
 int ngram( Logfile&, Config& );
