@@ -1,0 +1,239 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" version="-//W3C//DTD XHTML 1.1//EN" xml:lang="en">
+<head>
+<!-- 
+  ___   _____     __  __                         _             _   _   ____
+ |_ _| |_   _|   |  \/  |   __ _   ___    __ _  | |   __ _    | | | | | __ )
+  | |    | |     | |\/| |  / _` | / __|  / _` | | |  / _` |   | |_| | |  _ \
+  | |    | |     | |  | | | (_| | \__ \ | (_| | | | | (_| |   |  _  | | |_) |
+ |___|   |_|     |_|  |_|  \__,_| |___/  \__,_| |_|  \__,_|   |_| |_| |____/
+
+-->
+<style type="text/css">
+#page {
+	font-size: 14px;
+	font-family: "Lucida Grande", Verdana, Arial;
+}
+#whichkey {
+	height: 1em;
+	width: 1em;
+	font-family: "Courier New", Courier, Monaco, monospace;
+	font-size: 14px;
+}
+#txt {
+	height: 200px;
+	width: 500px;
+}
+.txt_on {
+	background-color: #e6e6e6;
+	color: #ff8000;
+	font-size: 18px;
+}
+.txt_off {
+	background-color: #e6e6e6;
+	color: #666666;
+	font-size: 18px;
+}
+</style>
+<!-- -->
+<script src="http://code.jquery.com/jquery-latest.js"></script>
+<!-- -->
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<meta name="author" content="Peter Berck, IT Masala HB" />
+<meta name="copyright" content="Peter Berck, IT Masala HB" />
+<meta name="description" content="Predictive Editing" />
+<meta name="keywords" content="Predictive Editing, Wopr" />
+<!-- -->
+<title>Webdemo</title>
+<!-- -->
+<script type="text/javascript">
+
+var can_del    =  0;
+var kbd_status =  0;
+var pdt_idx    = -1;
+
+function get_pdt_idx() {
+  $.post('./wopr.php', {c:"START"},
+      function(data) {
+        console.log(data);
+        xml_doc = $.parseXML( data );
+        xml = $( xml_doc );
+        pdt_idx = parseInt(xml.find("pdt_idx").text());
+        //alert( pdt_idx );
+        if ( pdt_idx == -1 ) {
+          alert( "Server overloaded." );
+        } else {
+          ctx();
+          // enable:
+          $("#txt").on("click", function(event){
+            toggle_kbd();
+          });
+        }
+      }
+  );
+}
+
+function ctx() {
+  $.post('./wopr.php', {c:"CTX "+pdt_idx},
+      function(data) {
+        console.log(data);
+        xml_doc = $.parseXML( data );
+        $xml = $( xml_doc );
+        $ctx_ltr = $xml.find( "ctx_ltr" );
+        $("#ctx_ltr").html( $ctx_ltr.text() );
+        $ctx_wrd = $xml.find( "ctx_wrd" );
+        $("#ctx_wrd").html( $ctx_wrd.text() );
+        $ltr_his = $xml.find( "ltr_his" );
+        if ( $ltr_his.text() != "0" ) {
+          can_del = 1;
+        } else {
+          can_del = 0;
+        }
+      }
+  );
+}
+function key(ltr) {
+  $.post('./wopr.php', { c:"LTR "+pdt_idx+" "+ltr },
+    function(data) {
+      console.log("data="+data);
+      xml_doc = $.parseXML( data );
+      $xml = $( xml_doc );
+    }
+  );
+  // Or....
+  $("#txt").text( $("#txt").text()+ltr );
+  gen();
+  ctx();
+}
+function key_spc() {
+  $.post('./wopr.php', { c:"SPC "+pdt_idx },
+    function(data) {
+      console.log("data="+data);
+      xml_doc = $.parseXML( data );
+      $xml = $( xml_doc );
+    }
+  );
+  $("#txt").text( $("#txt").text()+" " );
+  ctx();
+  gen();
+}
+function key_del() {
+  $.post('./wopr.php', { c:"DEL "+pdt_idx },
+    function(data) {
+      console.log("data="+data);
+      xml_doc = $.parseXML( data );
+      $xml = $( xml_doc );
+      // if we delete a space, we need to take the last word
+      // out of the word context (could be done in PDT)
+    }
+  );
+  var the_txt = jQuery('#txt').text();
+  the_txt = the_txt.substring(0, the_txt.length-1);
+  console.log(the_txt);
+  $("#txt").text( the_txt );
+  ctx();
+  gen();
+}
+function gen() {
+  $.post('./wopr.php', { c:"GEN "+pdt_idx },
+      function(data) {
+        console.log(data);
+        xml_doc = $.parseXML( data );
+        $xml = $( xml_doc );
+        $gen = $xml.find( "gen" );
+        console.log( $gen.text() );
+        $("#gen_res").text("");
+        $xml.find( "gen" ).each( function() {
+          $a_gen = $(this);
+          console.log($a_gen.text());
+          $("#gen_res").append( $a_gen.text()+"<br/>" );
+        });
+        $gen_tms = $xml.find( "time_ms" );
+        $("#gen_tms").html( $gen_tms.text()+" ms" );
+      }
+  );
+}
+function clr() {
+  $.post('./wopr.php', { c:"CLR "+pdt_idx },
+    function(data) {
+      console.log("data="+data);
+    }
+  );
+  $("#whichkey").val("");
+  $("#gen_res").text("");
+  $("#txt").text("");
+  ctx();
+}
+
+function enable_kbd() {
+  $(document).on({
+    keydown: function(){
+      if ( (can_del > 0) && (event.which == 8) ) {
+        key_del();
+        event.stopPropagation();
+        event.preventDefault();
+      } else {
+        event.stopPropagation();
+      }
+    },
+    keypress: function(){
+      if ( event.charCode == 32 ) {
+        key_spc();
+      } else if ( event.charCode != 8 ) {
+        key(String.fromCharCode(event.charCode));
+      }
+    }
+  });
+}
+function disable_kbd() {
+  $(document).off("keydown");
+  $(document).off("keypress");
+}
+function toggle_kbd() {
+  if ( kbd_status == 0 ) {
+    kbd_status = 1;
+    $("#toggle_kbd").text( "KEYBD ON" );
+    enable_kbd();
+    $("#txt").removeClass("txt_off");
+    $("#txt").addClass("txt_on");
+  } else {
+    disable_kbd();
+    kbd_status = 0;
+    $("#toggle_kbd").text( "KEYBD OFF" );
+    $("#txt").removeClass("txt_on");
+    $("#txt").addClass("txt_off");
+  }
+}
+
+$(window).load(function () {
+  get_pdt_idx();
+});
+</script>
+<!-- -->
+</head>
+<!-- -->
+<body>
+<div id="page">
+
+<p>Letter Context: <span id="ctx_ltr">????</span></p>
+<p>Word Context: <span id="ctx_wrd">????</span></p>
+
+<!--<span class="key" onclick="key('a');">a</span>
+<span class="key" onclick="key('b');">b</span>
+<span class="key" onclick="key('c');">c</span>-->
+
+<div id="gen" onclick="gen();">GENERATE</div>
+<div id="clr" onclick="clr();">CLEAR</div>
+<div id="toggle_kbd" onclick="toggle_kbd();">KEYBD OFF</div>
+<br/>
+<!--<input id="whichkey" value="">-->
+<br/>
+<br/>
+<div id="txt" class="txt_off"></div>
+<br/>
+<div id="gen_res">????</div>
+<div id="gen_tms">0</div>
+<br/>
+</div>
+</body>
+</html>
