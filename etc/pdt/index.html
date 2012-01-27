@@ -93,6 +93,24 @@ function has_error(data) {
   return false;
 }
 
+function get_info() {
+  $.post('./wopr.php', { c:"INFO" },
+      function(data) {
+        console.log(data);
+        xml_doc = $.parseXML( data );
+        xml = $( xml_doc );
+        if ( xml.find("result").text() == "error" ) {
+          alert( "Session probably timed out." );
+          return;
+        }
+        ltr_ibase = xml.find( "ltr_ibasefile" );
+        console.log("lre_ibase="+ltr_ibase.text());
+        $("#ltr_ibase").html( ltr_ibase.text() );
+        wrd_ibase = xml.find( "wrd_ibasefile" );
+        $("#wrd_ibase").html( wrd_ibase.text() );
+      }
+  );
+}
 function ctx() {
   $.post('./wopr.php', {c:"CTX "+pdt_idx},
       function(data) {
@@ -107,6 +125,12 @@ function ctx() {
         $("#ctx_ltr").html( ctx_ltr.text() );
         ctx_wrd = xml.find( "ctx_wrd" );
         $("#ctx_wrd").html( ctx_wrd.text() );
+
+        ltr_dl = xml.find( "dl" );
+        $("#ltr_dl").html( ltr_dl.text() );
+        wrd_ds = xml.find( "ds" );
+        $("#wrd_ds").html( wrd_ds.text() );
+        
         ltr_his = xml.find( "ltr_his" );
         if ( ltr_his.text() != "0" ) {
           can_del = 1;
@@ -230,6 +254,7 @@ function toggle_kbd() {
 }
 
 $(window).load(function () {
+  get_info();
   get_pdt_idx();
 });
 </script>
@@ -239,8 +264,9 @@ $(window).load(function () {
 <body>
 <div id="page">
 
-<p>Letter Context: <span id="ctx_ltr">????</span></p>
-<p>Word Context: <span id="ctx_wrd">????</span></p>
+<p>Letter ibase: <span id="ltr_ibase">????</span>&nbsp;&nbsp;Word ibase: <span id="wrd_ibase">????</span></p>
+<p>Letter Context: <span id="ctx_ltr">????</span>&nbsp;&nbsp;Depth: <span id="ltr_dl">?</span></p>
+<p>Word Context: <span id="ctx_wrd">????</span>&nbsp;&nbsp;Depths: <span id="wrd_ds">?</span></p>
 
 <!--<span class="key" onclick="key('a');">a</span>
 <span class="key" onclick="key('b');">b</span>

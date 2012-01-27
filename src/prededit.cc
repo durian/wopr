@@ -1427,6 +1427,20 @@ int pdt2web( Logfile& l, Config& c ) {
       std::ostringstream ostr;
       ostr << res_doc;
       newSock->write( ostr.str() );
+    } else if ( buf == "INFO" ) {
+      TiXmlDocument res_doc;
+      TiXmlDeclaration *decl = new TiXmlDeclaration( "1.0", "", "" );
+      TiXmlElement     *element = new TiXmlElement( "result" );
+      res_doc.LinkEndChild( decl );
+      res_doc.LinkEndChild( element );
+      
+      // These/this should be taken from PDT.
+      //
+      add_element( element, "ltr_ibasefile", ibasefile0 );
+      add_element( element, "wrd_ibasefile", ibasefile1 );
+      std::ostringstream ostr;
+      ostr << res_doc;
+      newSock->write( ostr.str() );
     }
 
     // Commands on PDTs ------------------------
