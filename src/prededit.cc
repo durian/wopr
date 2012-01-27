@@ -1203,6 +1203,12 @@ int pdt2web( Logfile& l, Config& c ) {
   int                pel             = stoi( c.get_value( "n", "3" )); // length. implicit in ds!
   std::string        dl              = c.get_value( "dl", "3" ); // letter depth 
   int                mlm             = stoi( c.get_value( "mlm", "0" )); // minimum letter match
+  int                users           = stoi( c.get_value( "users", "5" )); // number of users/connections
+
+  if ( (users < 1) || (users > 10) ) {
+    users = 5;
+  }
+  time_t max_idle = 1800;
 
   PDTC pdtc0;
   pdtc0.init( ibasefile0, timbl0, lc0 );
@@ -1231,7 +1237,7 @@ int pdt2web( Logfile& l, Config& c ) {
   pdt.set_ltr_dl( dl );
 
   std::vector<PDT*> pdts;
-  int max_pdts = 5;
+  int max_pdts = users;
   pdts.clear();
   for ( int i = 0; i < max_pdts; i++ ) {
     pdts.push_back( NULL );
@@ -1372,6 +1378,19 @@ int pdt2web( Logfile& l, Config& c ) {
     buf = trim( buf, " \n\r" );
     l.log( "("+buf+")" );
 
+    // Weed out timed-out sessions.
+    //
+    for ( int i = 0; i < max_pdts; i++ ) {
+      if ( pdts.at(i) != NULL ) {
+	time_t idle = pdts.at(i)->idle();
+	if ( idle > max_idle ) {
+	  l.log( "Session "+to_str(i)+" has timed out ("+to_str(idle)+")." );
+	  delete pdts.at(i);
+	  pdts.at(i) = NULL;
+	}
+      }
+    }
+
     if ( buf == "QUIT" ) {
       //
       // Quit...
@@ -1430,14 +1449,21 @@ int pdt2web( Logfile& l, Config& c ) {
 
       std::string cmd = buf_tokens.at(0);
       int pdt_idx = stoi(buf_tokens.at(1));
-      PDT *pdt = pdts.at( pdt_idx );
-      if ( pdt == NULL ) {
-	l.log( "NULL index requested at "+buf_tokens.at(1) );
+      PDT *pdt = NULL;
+      if ( pdt_idx < 0 ) {
+	l.log( "-2 index requested at "+buf_tokens.at(1) );
 	newSock->write( err_doc_str );// error doc
 	cmd = "__IGNORE__";
       } else {
-	time_t idle = pdt->idle();
-	l.log( "idle="+to_str(idle));
+	pdt = pdts.at( pdt_idx );
+	if ( pdt == NULL ) {
+	  l.log( "NULL index requested at "+buf_tokens.at(1) );
+	  newSock->write( err_doc_str );// error doc
+	  cmd = "__IGNORE__";
+	} else {
+	  time_t idle = pdt->idle();
+	  l.log( "idle="+to_str(idle));
+	}
       }
 
       if ( cmd == "STOP" ) {
