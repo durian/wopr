@@ -30,10 +30,10 @@ if ( $socket ) {
   }
   $info = stream_get_meta_data($socket);
   if ($info['timed_out']) {
-    echo "<result>time out</result>";
+    echo "<result><error>time out</error></result>";
   }
   fclose( $socket );
  } else {
-  echo "<result>no socket</result>";
+  echo "<result><error>no socket</error></result>";
 }
 ?> 

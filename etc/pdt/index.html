@@ -58,10 +58,14 @@ function get_pdt_idx() {
         console.log(data);
         xml_doc = $.parseXML( data );
         xml = $( xml_doc );
+        if ( has_error(data) ) {
+          return;
+        }
         pdt_idx = parseInt(xml.find("pdt_idx").text());
         //alert( pdt_idx );
         if ( pdt_idx == -1 ) {
           alert( "Server overloaded." );
+          return;
         } else {
           ctx();
           // enable:
@@ -73,18 +77,38 @@ function get_pdt_idx() {
   );
 }
 
+function has_error(data) {
+  xml_doc = $.parseXML( data );
+  xml = $( xml_doc ); 
+  if ( xml.find("error").text() == "time out" ) { // from php
+    alert( "Server timed out." );
+    return true;
+  } else if ( xml.find("error").text() == "no socket" ) { // from php
+    alert( "Server cannot be contacted." );
+    return true;
+  } else if ( xml.find("result").text() == "error" ) { // from server
+    alert( "Server returned an error, probably timed out." );
+    return true;
+  }
+  return false;
+}
+
 function ctx() {
   $.post('./wopr.php', {c:"CTX "+pdt_idx},
       function(data) {
         console.log(data);
         xml_doc = $.parseXML( data );
-        $xml = $( xml_doc );
-        $ctx_ltr = $xml.find( "ctx_ltr" );
-        $("#ctx_ltr").html( $ctx_ltr.text() );
-        $ctx_wrd = $xml.find( "ctx_wrd" );
-        $("#ctx_wrd").html( $ctx_wrd.text() );
-        $ltr_his = $xml.find( "ltr_his" );
-        if ( $ltr_his.text() != "0" ) {
+        xml = $( xml_doc );
+        if ( xml.find("result").text() == "error" ) {
+          alert( "Session probably timed out." );
+          return;
+        }
+        ctx_ltr = xml.find( "ctx_ltr" );
+        $("#ctx_ltr").html( ctx_ltr.text() );
+        ctx_wrd = xml.find( "ctx_wrd" );
+        $("#ctx_wrd").html( ctx_wrd.text() );
+        ltr_his = xml.find( "ltr_his" );
+        if ( ltr_his.text() != "0" ) {
           can_del = 1;
         } else {
           can_del = 0;
