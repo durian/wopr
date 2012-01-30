@@ -34,9 +34,17 @@
 	color: #666666;
 	font-size: 18px;
 }
+.button {
+	width: 10em;
+	padding: 2px;
+	border-style: double;
+	border-width: 1px;
+	cursor: pointer;
+}
 </style>
 <!-- -->
 <script src="http://code.jquery.com/jquery-latest.js"></script>
+<!--<script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.8.16/jquery-ui.js"></script>-->
 <!-- -->
 <meta http-equiv="content-type" content="text/html; charset=utf-8" />
 <meta name="author" content="Peter Berck, IT Masala HB" />
@@ -87,7 +95,7 @@ function has_error(data) {
     alert( "Server cannot be contacted." );
     return true;
   } else if ( xml.find("result").text() == "error" ) { // from server
-    alert( "Server returned an error, probably timed out." );
+    alert( "Server returned an error, probably timed out. Reload to restart." );
     return true;
   }
   return false;
@@ -100,7 +108,7 @@ function get_info() {
         xml_doc = $.parseXML( data );
         xml = $( xml_doc );
         if ( xml.find("result").text() == "error" ) {
-          alert( "Session probably timed out." );
+          alert( "Session probably timed out. Reload to restart." );
           return;
         }
         ltr_ibase = xml.find( "ltr_ibasefile" );
@@ -118,7 +126,7 @@ function ctx() {
         xml_doc = $.parseXML( data );
         xml = $( xml_doc );
         if ( xml.find("result").text() == "error" ) {
-          alert( "Session probably timed out." );
+          alert( "Session probably timed out. Reload to restart." );
           return;
         }
         ctx_ltr = xml.find( "ctx_ltr" );
@@ -272,9 +280,9 @@ $(window).load(function () {
 <span class="key" onclick="key('b');">b</span>
 <span class="key" onclick="key('c');">c</span>-->
 
-<div id="gen" onclick="gen();">GENERATE</div>
-<div id="clr" onclick="clr();">CLEAR</div>
-<div id="toggle_kbd" onclick="toggle_kbd();">KEYBD OFF</div>
+<div class="button" id="gen" onclick="gen();">GENERATE</div>
+<div class="button" id="clr" onclick="clr();">CLEAR</div>
+<div class="button" id="toggle_kbd" onclick="toggle_kbd();">KEYBD OFF</div>
 <br/>
 <!--<input id="whichkey" value="">-->
 <br/>
