@@ -51,6 +51,16 @@
 
 #include "MersenneTwister.h"
 
+#ifdef HAVE_ICU
+#define U_CHARSET_IS_UTF8 1
+#include "unicode/utypes.h"
+#include "unicode/uchar.h"
+#include "unicode/locid.h"
+#include "unicode/ustring.h"
+#include "unicode/ucnv.h"
+#include "unicode/unistr.h"
+#endif
+
 // Socket stuff
 
 #include <stdio.h>
@@ -1018,6 +1028,27 @@ void window_word_letters(std::string a_word, std::string t, int lc, Context& ctx
   ctx.push( tmp ); // next letter in context
   res.push_back( ctx.toString() + " " + "_" ); //instead of t
 }
+#ifdef HAVE_ICU
+void icu_window_word_letters(std::string a_word, std::string t, int lc, Context& ctx, std::vector<std::string>& res) {
+  int i;
+  //UnicodeString ustr = UnicodeString::fromUTF8(StringPiece(a_word.c_str()));
+  UnicodeString ustr = UnicodeString::fromUTF8(a_word);
+  for ( i = 0; i < ustr.length()-1; i++ ) { //NB ()-1
+    UnicodeString tmp = ustr.charAt(i);
+    std::string tmp_res;
+    tmp.toUTF8String(tmp_res);
+    ctx.push( tmp_res ); // next letter in context
+    res.push_back( ctx.toString() + " " + t );
+  }
+  // After the last letter, predict a space instead.
+  // Do we want to predict spaces? Just skip this instance?
+  UnicodeString tmp = ustr.charAt(i);
+  std::string tmp_res;
+  tmp.toUTF8String(tmp_res);
+  ctx.push( tmp_res ); // next letter in context
+  res.push_back( ctx.toString() + " " + "_" ); //instead of t
+}
+#endif
 
 // Loop over one sentence.
 // "The man", lc:2
@@ -1040,7 +1071,11 @@ void window_words_letters(std::string a_line, int lc, Context& ctx, std::vector<
       res.push_back( ctx.toString() + " " + words.at(i)); 
     }
     // Continue with the individual letters of the word.
+#ifdef HAVE_ICU
+    icu_window_word_letters( words.at(i), words.at(i), lc, ctx, res );
+#else
     window_word_letters( words.at(i), words.at(i), lc, ctx, res );
+#endif
   }
 }
 
@@ -1186,6 +1221,87 @@ void add_element(TiXmlElement* ele, const std::string& t, const std::string& v) 
 
 int pdt2web( Logfile& l, Config& c ) {
   l.log( "work in progress pdt2web" );
+
+#ifdef HAVE_ICU
+  l.log( "Using ICU with U_CHARSET_IS_UTF8" );
+  UnicodeString us1("Öäå and so");
+  std::string us0 = "Öäå and so";
+  UChar uc1 = us1.charAt(1);
+  std::cerr << "-------->" << uc1 << std::endl;
+  //std::cerr << "-------->" << us1 << std::endl;
+  std::cerr << "-------->" << us0.at(1) << std::endl;
+  std::cerr << "-------->" << us0 << std::endl;
+  std::cerr << "-length->" << us1.length() << std::endl;
+  std::cerr << "-length->" << us0.length() << std::endl;
+
+
+  UnicodeString ustr = "Öäå foo åäö.";
+  const UChar* source = ustr.getBuffer();
+  char target[1000];
+  UErrorCode status = U_ZERO_ERROR;
+  UConverter *conv;
+  int32_t     len;
+  
+  // set up the converter
+  //conv = ucnv_open("iso-8859-6", &status);
+  conv = ucnv_open("utf-8", &status);
+  assert(U_SUCCESS(status));
+  
+  // convert 
+  len = ucnv_fromUChars(conv, target, 100, source, -1, &status);
+  assert(U_SUCCESS(status));
+  
+  // close the converter
+  ucnv_close(conv);
+  
+  std::string s(target);
+  std::cerr << "-------->" << s << std::endl;
+
+  // ---
+  
+  static char const* const cp = "utf-8";
+  ustr = "This öäå is rubbish Wye エイ ひ.く T1 ひき びき {pull} {tug} {jerk}.";
+  std::string a_str = "This öäå is rubbish Wye エイ ひ.く T1 ひき びき {pull} {tug} {jerk}.";
+  std::cerr << "--a_str->" << a_str << std::endl;
+  std::cerr << a_str.length() << "/" << ustr.length()  << std::endl;
+
+  std::vector<char> buf(ustr.length() + 1);
+  len = ustr.extract(0, ustr.length(), &buf[0], buf.size(), cp);
+  if (len >= buf.size()) {
+    buf.resize(len + 1);
+    len = ustr.extract(0, ustr.length(), &buf[0], buf.size(), cp);
+  }
+  std::string ret;
+  if (len) {
+    ret.assign( buf.begin(), buf.begin() + len );
+    std::cerr << "-------->" << ret << std::endl;
+  }
+  //
+  len = ustr.extract(0, ustr.length(), &buf[0], buf.size(), NULL);
+  if (len >= buf.size()) {
+    buf.resize(len + 1);
+    len = ustr.extract(0, ustr.length(), &buf[0], buf.size(), NULL);
+  }
+  ret;
+  if (len) {
+    ret.assign( buf.begin(), buf.begin() + len );
+    std::cerr << "-------->" << ret << std::endl;
+  }
+  
+  for ( int i = 0; i < ustr.length(); i++ ) {
+    UnicodeString uc = ustr.charAt(i);
+    std::string us;
+    uc.toUTF8String(us);
+    std::cerr << us;
+  }
+  std::cerr << std::endl;
+
+  // Easiest...
+  std::string res;
+  ustr.toUTF8String(res);
+  std::cerr << "---res-->" << res << std::endl;
+
+#endif
 
   const std::string port        = c.get_value( "port", "1984" );
   const int verbose             = stoi( c.get_value( "verbose", "1" ));
@@ -1537,7 +1653,7 @@ int pdt2web( Logfile& l, Config& c ) {
       //
       l.log( pdt->ltr_ctx->toString() );
       l.log( pdt->wrd_ctx->toString() );
-
+      l.log( pdt->wip+"/"+pdt->pwip );
 
       TiXmlDocument doc;
       TiXmlDeclaration * decl = new TiXmlDeclaration( "1.0", "", "" );

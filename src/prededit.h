@@ -32,6 +32,9 @@ void generate_next( Timbl::TimblAPI*, std::string, std::vector<distr_elem>& );
 void generate_tree( Timbl::TimblAPI*, Context&, std::vector<std::string>&, int, std::vector<int>&, std::string );
 int explode(std::string, std::vector<std::string>&);
 void window_word_letters(std::string, std::string, int, Context&, std::vector<std::string>&);
+#ifdef HAVE_ICU
+void icu_window_word_letters(std::string, std::string, int, Context&, std::vector<std::string>&);
+#endif
 void window_words_letters(std::string, int, Context&, std::vector<std::string>&);
 
 int pdt( Logfile&, Config& );

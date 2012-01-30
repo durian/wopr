@@ -4080,8 +4080,22 @@ bool contains_id( const std::string& str, const std::string& id  ) {
 }
 
 int test_wopr( Logfile& l, Config& c ) {
+  std::string                        a_word = "wöåd and エイ ひ.";
+  std::vector<std::string>           results;
+  std::vector<std::string>::iterator ri;
+  int lc = 4;
+  Context ctx(lc);
+
+  for ( long i = 0; i < 1000000; i++ ) {
+    results.clear();
+    window_words_letters(a_word, lc, ctx, results);
+  }
+  for ( ri = results.begin(); ri != results.end(); ri++ ) {
+    l.log(*ri);
+  }
+
   //for ( long i = 0; i < 1000000; i++ ) {
-    levenshtein(l, c);
+  //levenshtein(l, c);
     //}
     return 0;
 }  

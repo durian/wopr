@@ -116,6 +116,9 @@ int main( int argc, char* argv[] ) {
     l.log( TIMBL );
   }
 #endif
+#ifdef HAVE_ICU
+  l.log( "Using ICU with U_CHARSET_IS_UTF8" );
+#endif
   l.log( blurb );
   l.log( "PID: "+to_str(getpid(),6,' ')+" PPID: "+to_str(getppid(),6,' ') );
 
