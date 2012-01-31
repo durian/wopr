@@ -152,7 +152,8 @@ if test "$useICU" = "1"; then
   AC_DEFINE(HAVE_ICU, 1, we want to use ICU )
 else
   #AC_MSG_ERROR("ICU support is required")
-  AC_DEFINE(HAVE_ICU, 0, we do not want to use ICU )
+  AC_MSG_NOTICE([No ICU support])
+  #AC_DEFINE(HAVE_NOICU, 0, we do not want to use ICU )
 fi
 # ---
 
