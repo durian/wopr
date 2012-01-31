@@ -628,7 +628,7 @@ int pdt2( Logfile& l, Config& c ) {
 
 	// We need to skip the letter context as well now.
 	//
-	(void)explode( token, letters );
+	(void)explode( token, letters ); // PJB: TODO, ICUify
 	for ( int j = 0; j < letters.size(); j++ ) {
 	  letter = letters.at(j);
 	  ctx0.push( letter );
@@ -1002,6 +1002,7 @@ void generate_tree( Timbl::TimblAPI* My_Experiment, Context& ctx, std::vector<st
 
 // foo -> f o o
 //
+#ifndef HAVE_ICU
 int explode(std::string a_word, std::vector<std::string>& res) {
   for ( int i = 0; i < a_word.length(); i++ ) {
     std::string tmp = a_word.substr(i, 1);
@@ -1009,6 +1010,18 @@ int explode(std::string a_word, std::vector<std::string>& res) {
   }
   return res.size();
 }
+#else
+int explode(std::string a_word, std::vector<std::string>& res) {
+  UnicodeString ustr = UnicodeString::fromUTF8(a_word);
+  for ( int i = 0; i < ustr.length(); i++ ) {
+    UnicodeString tmp = ustr.charAt(i);
+    std::string tmp_res;
+    tmp.toUTF8String(tmp_res);
+    res.push_back( tmp_res );
+  }
+  return res.size();
+}
+#endif
 
 // Generates letter instances. Example for lc:2, "The":
 // _ T  The
