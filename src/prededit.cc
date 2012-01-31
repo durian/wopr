@@ -1015,6 +1015,7 @@ int explode(std::string a_word, std::vector<std::string>& res) {
 // T h  The
 // h e  _
 //
+#ifndef HAVE_ICU
 void window_word_letters(std::string a_word, std::string t, int lc, Context& ctx, std::vector<std::string>& res) {
   int i;
   for ( i = 0; i < a_word.length()-1; i++ ) { //NB ()-1
@@ -1028,8 +1029,8 @@ void window_word_letters(std::string a_word, std::string t, int lc, Context& ctx
   ctx.push( tmp ); // next letter in context
   res.push_back( ctx.toString() + " " + "_" ); //instead of t
 }
-#ifdef HAVE_ICU
-void icu_window_word_letters(std::string a_word, std::string t, int lc, Context& ctx, std::vector<std::string>& res) {
+#else
+void window_word_letters(std::string a_word, std::string t, int lc, Context& ctx, std::vector<std::string>& res) {
   int i;
   //UnicodeString ustr = UnicodeString::fromUTF8(StringPiece(a_word.c_str()));
   UnicodeString ustr = UnicodeString::fromUTF8(a_word);
@@ -1071,11 +1072,7 @@ void window_words_letters(std::string a_line, int lc, Context& ctx, std::vector<
       res.push_back( ctx.toString() + " " + words.at(i)); 
     }
     // Continue with the individual letters of the word.
-#ifdef HAVE_ICU
-    icu_window_word_letters( words.at(i), words.at(i), lc, ctx, res );
-#else
     window_word_letters( words.at(i), words.at(i), lc, ctx, res );
-#endif
   }
 }
 
