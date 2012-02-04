@@ -898,7 +898,7 @@ int server_sc( Logfile& l, Config& c ) {
 	    connection_open = false;
 	    break;
 	  }
-	  if ( verbose > 0 ) {
+	  if ( verbose > 1 ) {
 	    l.log( "|" + tmp_buf + "|" );
 	  }
 	  
@@ -911,7 +911,7 @@ int server_sc( Logfile& l, Config& c ) {
 	  //
 	  std::string cache_ans = cache->get( full_string );
 	  if ( cache_ans != "" ) {
-	    if ( verbose > 0 ) {
+	    if ( verbose > 2 ) {
 	      l.log( "Found in cache." );
 	    }
 	    newSock->write(  cache_ans + '\n' );
@@ -976,7 +976,7 @@ int server_sc( Logfile& l, Config& c ) {
 	    
 	    size_t      res_freq = tv->ValFreq();	    
 	    std::string answer   = tv->Name();
-	    if ( verbose > 0 ) {
+	    if ( verbose > 1 ) {
 	      l.log( "timbl("+classify_line+")="+answer );
 	    }
 
@@ -1360,7 +1360,7 @@ int server_sc_nf( Logfile& l, Config& c ) {
 	  c.set_status(0);
 	  break;
 	}
-	if ( verbose > 0 ) {
+	if ( verbose > 1 ) {
 	  l.log( "|" + tmp_buf + "|" );
 	}
 
@@ -1388,7 +1388,7 @@ int server_sc_nf( Logfile& l, Config& c ) {
 	  //
 	  std::string cache_ans = cache->get( classify_line );
 	  if ( cache_ans != "" ) {
-	    if ( verbose > 0 ) {
+	    if ( verbose > 2 ) {
 	      l.log( "Found in cache." );
 	    }
 	    newSock->write(  cache_ans + '\n' );
@@ -1436,7 +1436,7 @@ int server_sc_nf( Logfile& l, Config& c ) {
 	    
 	  size_t      res_freq = tv->ValFreq();	    
 	  std::string answer   = tv->Name();
-	  if ( verbose > 0 ) {
+	  if ( verbose > 1 ) {
 	    l.log( "timbl("+classify_line+")="+answer );
 	  }
 
