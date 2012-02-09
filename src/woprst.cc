@@ -496,7 +496,7 @@ int run_ping( Logfile& l, const std::string& host, const std::string& port) {
       return -1;
     }
     cs.close();
-    delay(1000000); // 1 secs
+    delay(10000000); // 10 secs
   }
   u_secs1 = clock_u_secs();
   std::cout << u_secs1 << std::endl;

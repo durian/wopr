@@ -4086,7 +4086,7 @@ int test_wopr( Logfile& l, Config& c ) {
   int lc = 4;
   Context ctx(lc);
 
-  for ( long i = 0; i < 1000000; i++ ) {
+  for ( long i = 0; i < 1000; i++ ) {
     results.clear();
     window_words_letters(a_word, lc, ctx, results);
   }
@@ -4094,9 +4094,9 @@ int test_wopr( Logfile& l, Config& c ) {
     l.log(*ri);
   }
 
-  //for ( long i = 0; i < 1000000; i++ ) {
-  //levenshtein(l, c);
-    //}
+  for ( long i = 0; i < 1; i++ ) {
+    levenshtein(l, c);
+  }
     return 0;
 }  
 
