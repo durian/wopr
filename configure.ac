@@ -157,5 +157,17 @@ else
 fi
 # ---
 
+# Levenshtein distance transposition
+#
+AC_ARG_WITH(transpose, [  --with-transpose Transpose is LD:2])
+if test "$with_transpose" == "yes"
+then
+	AC_MSG_NOTICE([You enabled transpose.])
+	AC_DEFINE(TRANSPLD2, 1, we want transpose to be LD:2 )
+else
+	AC_MSG_NOTICE([No transpose for you.])
+fi
+# ---
+
 AC_OUTPUT(Makefile)
 

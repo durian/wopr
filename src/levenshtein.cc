@@ -69,9 +69,6 @@
 #include "SocketBasics.h"
 #endif
 
-// Do we want a transposition to be LD:2 (or else LD:1)?
-//#define TRANSPLD2
-
 #define BACKLOG 5     // how many pending connections queue will hold
 #define MAXDATASIZE 2048 // max number of bytes we can get at once 
 
