@@ -69,6 +69,9 @@
 #include "SocketBasics.h"
 #endif
 
+// Do we want a transposition to be LD:2 (or else LD:1)?
+//#define TRANSPLD2
+
 #define BACKLOG 5     // how many pending connections queue will hold
 #define MAXDATASIZE 2048 // max number of bytes we can get at once 
 
@@ -158,14 +161,16 @@ int lev_distance(const std::string source, const std::string target) {
       if ( i>2 && j>2 ) {
         int trans = matrix[i-2][j-2] + 1;
 
-	// Code was /* ... */, bet that gave LD:2 to a
-	// transposition.
-        /*if ( source[i-2] != t_j ) {
+	// Code gives LD:2 to a transposition. If TRANSPLD2
+	// is not defined, a transposition is LD:1
+#ifdef TRANSPLD2
+        if ( source[i-2] != t_j ) {
 	  trans++;
 	}
         if ( s_i != target[j-2] ) {
 	  trans++;
-	  }*/
+	}
+#endif
 	if ( source[i-2] != t_j ) {
 	  if ( s_i != target[j-2] ) {
 	    trans++;
