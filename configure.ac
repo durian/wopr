@@ -136,7 +136,7 @@ AC_DEFINE_UNQUOTED(HAVE_SIZE_T,$ac_cv_type_size_t, "have_size_t" )
 useICU=1;
 # inspired by feh-1.3.4/configure.ac.  Tnx Tom Gilbert and feh hackers.
 AC_ARG_WITH(icu,
-       [  --with-icu=DIR       use ICU installed in <DIR>],
+       [  --with-icu=DIR          use ICU installed in <DIR>],
        [if test "$with_icu" = "no"; then
            useICU=0
         else
@@ -159,13 +159,13 @@ fi
 
 # Levenshtein distance transposition
 #
-AC_ARG_WITH(transpose, [  --with-transpose Transpose is LD:2])
+AC_ARG_WITH(transpose, [  --with-transpose        make transpose LD:1])
 if test "$with_transpose" == "yes"
 then
-	AC_MSG_NOTICE([You enabled transpose.])
-	AC_DEFINE(TRANSPLD2, 1, we want transpose to be LD:2 )
+	AC_MSG_NOTICE([You enabled transpose LD:1.])
 else
-	AC_MSG_NOTICE([No transpose for you.])
+	AC_MSG_NOTICE([Transpose is LD:2.])
+	AC_DEFINE(TRANSPLD2, 1, we want transpose to be LD:2 )
 fi
 # ---
 
