@@ -329,6 +329,82 @@ int levenshtein( Logfile& l, Config& c ) {
   return 0;
 }
 
+// The core, do the spelling correction on the distribution.
+// tv = My_Experiment->Classify( a_line, vd );
+//
+void distr_spelcorr( const Timbl::ValueDistribution *vd, const std::string& target, std::map<std::string,int>& wfreqs,
+		     std::vector<distr_elem*>& distr_vec,
+		     int max_ent, int mld, double min_ratio) {
+
+  int    cnt             = 0;
+  int    distr_count     = 0;
+  int    target_freq     = 0;
+  int    answer_freq     = 0;
+  double prob            = 0.0;
+  double target_distprob = 0.0;
+  double answer_prob     = 0.0;
+  double entropy         = 0.0;
+  double target_lexfreq  = 0.0;
+
+  cnt = vd->size();
+  distr_count = vd->totalSize();
+
+  Timbl::ValueDistribution::dist_iterator it = vd->begin();
+  std::map<std::string,int>::iterator tvsfi;
+  std::map<std::string,int>::iterator wfi;
+  double factor = 0.0;
+  
+  // NB some of the test are outside this loop (max_distr, in_distr)
+  while ( it != vd->end() ) {
+    
+    std::string tvs  = it->second->Value()->Name();
+    double      wght = it->second->Weight();
+    int ld = lev_distance( target, tvs );
+    
+    // If the ld of the word is less than the minimum,
+    // we include the result in our output.
+    //
+    if (
+	(entropy <= max_ent) &&
+	( ld <= mld )     
+	) { 
+      //
+      // So here we check frequency of tvs from the distr. with
+      // frequency of the target.
+      // 
+      int    tvs_lf = 0;
+      double factor = 0.0;
+      wfi = wfreqs.find( tvs );
+      if ( (wfi != wfreqs.end()) && (target_lexfreq > 0) ) {
+	tvs_lf =  (int)(*wfi).second;
+	factor = tvs_lf / target_lexfreq;
+      }
+      //
+      //l.log( tvs+"-"+to_str(tvs_lf)+"/"+to_str(factor) );
+      // If the target is not found (unknown words), we have no
+      // ratio, and we only use the other parameters, ie. this
+      // test falls through.
+      //
+      if ( (target_lexfreq == 0) || (factor >= min_ratio) ) {
+	//
+	distr_elem* d = new distr_elem(); 
+	d->name = tvs;
+	d->freq = ld;
+	tvsfi = wfreqs.find( tvs );
+	if ( tvsfi == wfreqs.end() ) {
+	  d->lexfreq = 0;
+	} else {
+	  d->lexfreq = (double)(*tvsfi).second;
+	}
+	
+	distr_vec.push_back( d );
+      } // factor>min_ratio
+    }
+    
+    ++it;
+  }
+}
+
 // Spellings correction.
 //
 /*
@@ -700,12 +776,14 @@ int correct( Logfile& l, Config& c ) {
       // I we didn't have the correct answer in the distro, we take ld=1
       // Skip words shorter than mwl.
       //
-      it = vd->begin();
       std::vector<distr_elem*> distr_vec;
+#undef OLDMETHOD
+#ifdef OLDMETHOD
+      it = vd->begin();
       std::map<std::string,int>::iterator tvsfi;
       double factor = 0.0;
       // if in_distr==true, we can look if att ld=1, and then at freq.factor!
-      if ( (target.length() > mwl) && (in_distr == false) ) {
+      if ( (cnt <= max_distr) && (target.length() > mwl) && (in_distr == false) ) {
 	while ( it != vd->end() ) {
 
 	  // 20100111: freq voorspelde woord : te voorspellen woord > 1
@@ -720,7 +798,6 @@ int correct( Logfile& l, Config& c ) {
 	  //
 	  if (
 	      (entropy <= max_ent) &&
-	      (cnt <= max_distr)   &&
 	      ( ld <= mld )     
 	      ) { 
 	    //
@@ -758,6 +835,11 @@ int correct( Logfile& l, Config& c ) {
 	  ++it;
 	}
       }
+#else
+      if ( (cnt <= max_distr) && (target.length() > mwl) && (in_distr == false) ) {
+	distr_spelcorr( vd, target, wfreqs, distr_vec, max_ent, mld, min_ratio);
+      }
+#endif
 
       // Word logprob (ref. Antal's mail 21/11/08)
       // 2 ^ (-logprob(w)) 
