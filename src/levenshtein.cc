@@ -1,5 +1,5 @@
 // ---------------------------------------------------------------------------
-// $Id: levenshtein.cc 14244 2012-02-10 12:39:11Z pberck $
+// $Id: levenshtein.cc 14280 2012-02-20 04:40:31Z pberck $
 // ---------------------------------------------------------------------------
 
 /*****************************************************************************
@@ -329,12 +329,50 @@ int levenshtein( Logfile& l, Config& c ) {
   return 0;
 }
 
+void distr_examine( const Timbl::ValueDistribution *vd, const std::string target,
+		    double& entropy) {
+  int cnt = 0;
+  int distr_count = 0;
+  int target_freq = 0;
+  int answer_freq = 0;
+  double prob            = 0.0;
+  double target_distprob = 0.0;
+  //double entropy         = 0.0;
+  bool in_distr          = false;
+
+  cnt = vd->size();
+  distr_count = vd->totalSize();
+  
+  // Check if target word is in the distribution.
+  //
+  Timbl::ValueDistribution::dist_iterator it = vd->begin();
+  while ( it != vd->end() ) {
+    //const Timbl::TargetValue *tv = it->second->Value();
+    
+    std::string tvs  = it->second->Value()->Name();
+    double      wght = it->second->Weight();
+    
+    // Prob. of this item in distribution.
+    //
+    prob     = (double)wght / (double)distr_count;
+    entropy -= ( prob * log2(prob) );
+    
+    if ( tvs == target ) { // The correct answer was in the distribution!
+      target_freq = wght;
+      in_distr = true;
+    }
+    
+    ++it;
+  }
+  target_distprob = (double)target_freq / (double)distr_count;
+}
+
 // The core, do the spelling correction on the distribution.
 // tv = My_Experiment->Classify( a_line, vd );
 //
 void distr_spelcorr( const Timbl::ValueDistribution *vd, const std::string& target, std::map<std::string,int>& wfreqs,
 		     std::vector<distr_elem*>& distr_vec,
-		     int max_ent, int mld, double min_ratio) {
+		     int mld, double min_ratio) {
 
   int    cnt             = 0;
   int    distr_count     = 0;
@@ -343,7 +381,6 @@ void distr_spelcorr( const Timbl::ValueDistribution *vd, const std::string& targ
   double prob            = 0.0;
   double target_distprob = 0.0;
   double answer_prob     = 0.0;
-  double entropy         = 0.0;
   double target_lexfreq  = 0.0;
 
   cnt = vd->size();
@@ -365,12 +402,12 @@ void distr_spelcorr( const Timbl::ValueDistribution *vd, const std::string& targ
     // we include the result in our output.
     //
     if (
-	(entropy <= max_ent) &&
-	( ld <= mld )     
+	( ld > 0 ) && 
+	( ld <= mld )
 	) { 
       //
       // So here we check frequency of tvs from the distr. with
-      // frequency of the target.
+      // frequency of the target. As parameter, we prolly already know it?
       // 
       int    tvs_lf = 0;
       double factor = 0.0;
@@ -380,7 +417,7 @@ void distr_spelcorr( const Timbl::ValueDistribution *vd, const std::string& targ
 	factor = tvs_lf / target_lexfreq;
       }
       //
-      //l.log( tvs+"-"+to_str(tvs_lf)+"/"+to_str(factor) );
+      //std::cerr << tvs << "-" << tvs_lf << "/" << factor << std::endl;
       // If the target is not found (unknown words), we have no
       // ratio, and we only use the other parameters, ie. this
       // test falls through.
@@ -396,7 +433,7 @@ void distr_spelcorr( const Timbl::ValueDistribution *vd, const std::string& targ
 	} else {
 	  d->lexfreq = (double)(*tvsfi).second;
 	}
-	
+
 	distr_vec.push_back( d );
       } // factor>min_ratio
     }
@@ -797,8 +834,8 @@ int correct( Logfile& l, Config& c ) {
 	  // we include the result in our output.
 	  //
 	  if (
-	      (entropy <= max_ent) &&
-	      ( ld <= mld )     
+	      ( ld <= mld ) && 
+	      (entropy <= max_ent) // should be outside loop
 	      ) { 
 	    //
 	    // So here we check frequency of tvs from the distr. with
@@ -836,8 +873,8 @@ int correct( Logfile& l, Config& c ) {
 	}
       }
 #else
-      if ( (cnt <= max_distr) && (target.length() > mwl) && (in_distr == false) ) {
-	distr_spelcorr( vd, target, wfreqs, distr_vec, max_ent, mld, min_ratio);
+      if ( (cnt <= max_distr) && (target.length() > mwl) && (in_distr == false) && (entropy <= max_ent) ) {
+	distr_spelcorr( vd, target, wfreqs, distr_vec, mld, min_ratio);
       }
 #endif
 
@@ -1067,7 +1104,7 @@ int server_sc( Logfile& l, Config& c ) {
 	std::vector<std::string> cls; // classify lines
 	std::vector<double> probs;
 
-	while ( running & connection_open ) {
+	while ( running && connection_open ) {
 
 	  std::string tmp_buf;
 	  newSock->read( tmp_buf );
@@ -1382,13 +1419,6 @@ int server_sc( Logfile& l, Config& c ) {
 #endif
 
 #if defined(TIMBLSERVER) && defined(TIMBL)
-/*struct cache_elem {
-  int cnt;
-  std::string ans;
-  bool operator<(const cache_elem& rhs) const {
-    return cnt > rhs.cnt;
-  }
-  };*/
 int server_sc_nf( Logfile& l, Config& c ) {
   l.log( "server spelling correction, non forking." );
   
@@ -1831,4 +1861,3 @@ int server_sc_nf( Logfile& l, Config& c ) {
   return -1;
 }
 #endif
-
