@@ -1,4 +1,4 @@
-// $Id: levenshtein.h 10019 2011-05-17 09:00:00Z pberck $
+// $Id: levenshtein.h 14279 2012-02-20 04:40:18Z pberck $
 //
 
 /*****************************************************************************
@@ -24,10 +24,15 @@
 #ifndef _LEVENSHTEIN_H
 #define _LEVENSHTEIN_H
 
+#include "elements.h"
+
 int distance(const std::string, const std::string);
 int levenshtein( Logfile&, Config& );
+void distr_spelcorr( const Timbl::ValueDistribution *, const std::string&, std::map<std::string,int>&,
+		     std::vector<distr_elem*>&,int, double);
 int correct( Logfile&, Config& );
 int lev_distance(const std::string, const std::string);
 int server_sc( Logfile&, Config& );
 int server_sc_nf( Logfile&, Config& );
+
 #endif

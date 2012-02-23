@@ -159,6 +159,7 @@ class PDT {
   std::string pwip; // previous word in progress
   time_t start_t;
   time_t last_t;
+  int lpos; // counts letters after space
 
   PDTC *ltr_c;
   PDTC *wrd_c;
@@ -178,6 +179,7 @@ class PDT {
   PDT() {
     start_t = utc();
     last_t = utc();
+    lpos = 0;
   };
 
   //! Destructor.
@@ -248,6 +250,7 @@ class PDT {
     ltr_his->clear();
     wrd_his->clear();
     wip.clear();
+    lpos = 0;
     touch();
   }
 
@@ -266,16 +269,28 @@ class PDT {
   // up the word simultaneously? (backspaces?)
   //
   void add_ltr( std::string& s ) {
+    if ( (s.length() == 2) && (s.at(0) == '\\') ) {
+      // Extremely crude method to get \' to '
+      s = s.at(1);
+    }
     ltr_his->add( ltr_ctx ); // add current context to history
     ltr_ctx->push( s );
     //std::cerr << ltr_ctx->toString() << std::endl;
     wip = wip + s;
+    ++lpos;
     touch();
   }
 
   // Pitfalls: >1 space
   //
   void add_spc() {
+    if ( ltr_ctx->last_letter() == "_" ) {
+      //
+      // Ignore dubbel spaces for now.
+      //
+      touch();
+      return;
+    }
     ltr_his->add( ltr_ctx );
     ltr_ctx->push( "_" );
     // now add wip to the words?
@@ -283,6 +298,7 @@ class PDT {
     add_wrd( wip );
     pwip = wip; // for "backspace" &c?
     wip.clear();
+    lpos = 0;
     touch();
   }
 
@@ -290,7 +306,7 @@ class PDT {
   // wip must also be adjusted.
   //
   void del_ltr() {
-    std::cerr << ltr_ctx->last_letter() << std::endl;
+    //std::cerr << ltr_ctx->last_letter() << std::endl;
     if ( ltr_ctx->last_letter() == "_" ) { //and lastlast != " " ?
       // fix word context? this needs to fix "wip" as well,
       // otherwise we miss letters in the beginning
@@ -299,6 +315,13 @@ class PDT {
       if ( pw != NULL ) {
 	wrd_ctx->cp( pw );
       }
+    } else {
+      // take from wip.
+      //
+      if ( wip.length() > 0 ) {
+	wip = wip.substr(0, wip.length()-1);
+      }
+      --lpos;
     }
     Context *pc = ltr_his->get(); //removes also
     if ( pc != NULL ) {
@@ -326,6 +349,18 @@ class PDT {
     generate_tree( wrd_c->My_Experiment, (Context&)(*wrd_ctx), res, n, wrd_depths, t );
     touch();
   }
+
+  // "Advance" this string in the system. Could be a predicted string.
+  // We could be half way a word, the first word is the desired
+  // continuation. Or we could be on a space.
+  //
+  void feed( std::string& s ) {
+    // feed_ltr( std::string& s )
+    // if ( ltr_ctx->last_letter() == "_" ) ...
+    // feed_wrd( std::string& s )
+  }
+
+
 
   time_t age() {
     return utc() - start_t;
