@@ -1,4 +1,4 @@
-// $Id: generator.h 9080 2011-03-23 10:34:23Z pberck $
+// $Id: generator.h 14654 2012-04-17 10:33:42Z sloot $
 //
 
 /*****************************************************************************
@@ -31,8 +31,8 @@
 int generate( Logfile&, Config& );
 
 #ifdef TIMBL
-std::string generate_one( Config&, std::string&, int, int, std::string, Timbl::TimblAPI* );
-std::string generate_xml( Config&, std::string&, std::string&, int, int, std::string, Timbl::TimblAPI* );
+std::string generate_one( Config&, std::string&, int, int, const std::string&, Timbl::TimblAPI* );
+std::string generate_xml( Config&, std::string&, std::string&, int, int, const std::string&, Timbl::TimblAPI* );
 #endif
 
 int generate_server( Logfile&, Config& );
