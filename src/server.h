@@ -1,4 +1,4 @@
-// $Id: server.h 13161 2011-09-14 07:55:13Z pberck $
+// $Id: server.h 14701 2012-04-26 09:38:08Z sloot $
 //
 
 /*****************************************************************************
@@ -53,7 +53,7 @@ int server4( Logfile&, Config& );
 int mbmt( Logfile&, Config& );
 int webdemo( Logfile&, Config& );
 int one( Logfile&, Config& );
-int hapax_vector( std::vector<std::string>&, std::map<std::string,int>, int);
+int hapax_vector( std::vector<std::string>&, const std::map<std::string,int>&, int);
 int vector_to_string( std::vector<std::string>& , std::string&  );
 int server_mg( Logfile&, Config& );
 #endif

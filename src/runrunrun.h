@@ -1,4 +1,4 @@
-// $Id: runrunrun.h 13723 2011-12-19 11:47:30Z pberck $
+// $Id: runrunrun.h 14700 2012-04-26 09:29:25Z sloot $
 //
 
 /*****************************************************************************
@@ -61,7 +61,7 @@ int window( std::string, std::string, int, int, int, std::vector<std::string>& )
 int window_line( Logfile&, Config& );
 int window_lr( Logfile&, Config& );
 int window_line2( Logfile&, Config& );
-int hapax_line( const std::string&, std::map<std::string,int>, int, int, std::string& );
+int hapax_line( const std::string&, const std::map<std::string,int>&, int, int, std::string& );
 int unk_pred( Logfile& , Config& );
 int ngram_line( std::string, int, std::vector<std::string>& );
 int ngram( std::string, int, std::vector<std::string>& );
