@@ -1,5 +1,5 @@
 // ---------------------------------------------------------------------------
-// $Id: ngrams.cc 13108 2011-09-08 11:31:21Z pberck $
+// $Id: ngrams.cc 15603 2013-01-24 10:06:41Z pberck $
 // ---------------------------------------------------------------------------
 
 /*****************************************************************************
@@ -969,7 +969,7 @@ int ngram_test( Logfile& l, Config& c ) {
 	    lri = lex_ranks.find( (*li).second );
 	    if ( lri != lex_ranks.end() ) {
 	      out = out + " 1 " +to_str(lex_count) + " " + to_str(lex_sumf) + " " + to_str(1/(float)(*lri).second);
-	      out = out + " [ ]"; // sorted lexicon needed here.
+	      //out = out + " [ ]"; // sorted lexicon needed here.
 
 	      // Now the top-n
 	      int cnt = topn;
