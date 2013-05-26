@@ -1,5 +1,5 @@
 // ---------------------------------------------------------------------------
-// $Id: server.cc 14701 2012-04-26 09:38:08Z sloot $
+// $Id: server.cc 15913 2013-04-03 14:11:50Z sloot $
 // ---------------------------------------------------------------------------
 
 /*****************************************************************************
@@ -1108,6 +1108,7 @@ int server4(Logfile& l, Config& c) {
 	  // Loop over all lines.
 	  //
 	  std::vector<std::string> words;
+
 	  probs.clear();
 	  for ( int i = 0; i < cls.size(); i++ ) {
 	    
@@ -1115,7 +1116,7 @@ int server4(Logfile& l, Config& c) {
 	    
 	    words.clear();
 	    Tokenize( classify_line, words, ' ' );
-	    
+
 	    if ( hapax > 0 ) {
 	      int c = hapax_vector( words, hpxfreqs, hapax );
 	      std::string t;
@@ -1207,7 +1208,7 @@ int server4(Logfile& l, Config& c) {
 		  }
 		}
 	      }
-	      
+
 	      if ( verbose > 1 ) {
 		l.log( "lprob10("+target+")="+to_str(res_pl10) );
 	      }
@@ -1286,7 +1287,7 @@ int server4(Logfile& l, Config& c) {
     } // running
   } // try
   catch ( const std::exception& e ) {
-    l.log( "ERROR: exception caught." );
+    l.log( std::string("ERROR: exception caught: ") + e.what() );
     return -1;
   }
   
@@ -2103,16 +2104,10 @@ int dist_to_xml( const Timbl::ValueDistribution* vd, std::string& res,
 #endif
 
 int vector_to_string( std::vector<std::string>& words, std::string& res ) {
-
-  std::vector<std::string>::iterator wi;
-
   res.clear();
-  std::string wrd;
-  for ( int i = 0; i < words.size(); i++ ) {
-    wrd = words.at( i );
-    res = res + wrd + " ";
+  for ( size_t i = 0; i < words.size(); i++ ) {
+    res = res + words[i] + " ";
   }
-
   return 0;
 }
 

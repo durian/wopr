@@ -1,5 +1,5 @@
 // ---------------------------------------------------------------------------
-// $Id: main.cc 14244 2012-02-10 12:39:11Z pberck $
+// $Id: main.cc 15913 2013-04-03 14:11:50Z sloot $
 // ---------------------------------------------------------------------------
 
 /*****************************************************************************
@@ -49,6 +49,10 @@
 
 #include <stdlib.h>  
 #include <string.h>  
+
+#ifdef HAVE_ICU
+#include "unicode/uversion.h"
+#endif
 
 #include "qlog.h"
 #include "util.h"
@@ -110,17 +114,21 @@ int main( int argc, char* argv[] ) {
   Logfile l;
   std::string blurb = "Starting " + std::string(PACKAGE) + " " +
                       std::string(VERSION);
+  l.log( blurb );
 #ifdef TIMBL
   l.log( "Timbl support built in." );
   if ( TIMBL != "yes" ) {
     l.log( TIMBL );
   }
+  l.log( "Based on "+Timbl::VersionName() );
+#endif
+#ifdef HAVE_FOLIA
+  l.log( "Based on "+folia::VersionName() );
 #endif
 #ifdef HAVE_ICU
-  l.log( "Compiled with ICU support." );
+  l.log_begin( "ICU support, " );
+  printf("version %s\n", U_ICU_VERSION);
 #endif
-  l.log( blurb );
-  l.log( "PID: "+to_str(getpid(),6,' ')+" PPID: "+to_str(getppid(),6,' ') );
 
   Config co;
   co.add_kv( "PID", to_str(getpid()) );
@@ -139,11 +147,12 @@ int main( int argc, char* argv[] ) {
       {"params", required_argument, 0, 0},
       {"run", required_argument, 0, 0},
       {"verbose", no_argument, 0, 0},
+      {"version", no_argument, 0, 0},
       {"examples", no_argument, 0, 0},
       {0, 0, 0, 0}
     };
 
-    c = getopt_long(argc, argv, "c:ls:p:r:ve", long_options, &option_index);
+    c = getopt_long(argc, argv, "c:ls:p:r:veV", long_options, &option_index);
     if (c == -1) {
       break;
     }
@@ -153,6 +162,9 @@ int main( int argc, char* argv[] ) {
     case 0:
       if ( long_options[option_index].name == "verbose" ) {
 	verbose = 1;
+      }
+      if ( long_options[option_index].name == "version" ) {
+	return 0;
       }
       if ( long_options[option_index].name == "log" ) {
 	log = 1;
@@ -182,6 +194,10 @@ int main( int argc, char* argv[] ) {
       
     case 'v':
       verbose = 1;
+      break;
+
+    case 'V':
+      return 0;
       break;
       
     case 'c':
@@ -275,7 +291,7 @@ int main( int argc, char* argv[] ) {
     wopr_log.close();
   }
 
-  l.log( "Starting." );
+  l.log( "PID: "+to_str(getpid(),6,' ')+" PPID: "+to_str(getppid(),6,' ') );
 
   timeval tv;
   l.get_raw(tv);

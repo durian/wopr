@@ -125,6 +125,7 @@ int pdt( Logfile& l, Config& c ) {
   std::string        ped             = c.get_value( "ds", "" ); // depths
   int                pel             = stoi( c.get_value( "n", "3" )); // length
   bool               matchesonly     = stoi( c.get_value( "mo", "0" )) == 1; // show only matches
+  int                minmatch        = stoi( c.get_value( "mm", "0" )); // minimum saving to count as useful
   std::string        id              = c.get_value( "id", to_str(getpid()) );
 
   Timbl::TimblAPI   *My_Experiment;
@@ -166,9 +167,6 @@ int pdt( Logfile& l, Config& c ) {
   l.log( "mo:         "+to_str(matchesonly) );
   l.log( "OUTPUT:     "+output_filename );
   l.dec_prefix();
-
-
-  
 
   try {
     My_Experiment = new Timbl::TimblAPI( timbl );
@@ -260,9 +258,9 @@ int pdt( Logfile& l, Config& c ) {
     // S0000 we sat and waited for the woman
     //
     file_out << "S" << std::setfill('0') << std::setw(4) << sentence_count << " "; 
-    file_out << a_line << " " << a_line.size() << std::endl;
+    file_out << a_line << " " << count_keys(a_line) << std::endl;
 
-    keypresses += a_line.size();
+    keypresses += count_keys(a_line);
 
     instance_count = 0;
 
@@ -349,12 +347,18 @@ int pdt( Logfile& l, Config& c ) {
 	  wi++;
 	}
 
+	// Skip if not > minmatch (to skip silly matches like comma's)
+	//
+	if ( count_keys(matched)-1 < minmatch ) {
+	  matched = "";
+	}
+
 	// We take largest number of presses, not words. Same result.
-	// 
-	if ( matched.size() > savedhere+1 ) {
+	//
+	if ( count_keys(matched) > savedhere+1 ) {
 	  //if ( words_matched > skip ) {
 	  skip = words_matched;
-	  savedhere = matched.size()-1;
+	  savedhere = count_keys(matched)-1;
 	  sentenceksaved += savedhere;
 	  sentencewsaved += words_matched;
 	}
@@ -364,16 +368,16 @@ int pdt( Logfile& l, Config& c ) {
 	// (print only when a match, optional?)
 	//
 	if ( ( matchesonly && (matched != "") ) || ( matchesonly == false ) ) {
-	file_out << "P" << std::setfill('0') << std::setw(4) << sentence_count << "." 
-		 << std::setfill('0') << std::setw(4) << instance_count << "." 
-		 << std::setfill('0') << std::setw(4) << prediction_count << (*si) << std::endl;
-
-	if ( matched != "" ) {
-	  file_out << "M" << std::setfill('0') << std::setw(4) << sentence_count << "." 
+	  file_out << "P" << std::setfill('0') << std::setw(4) << sentence_count << "." 
 		   << std::setfill('0') << std::setw(4) << instance_count << "." 
-		   << std::setfill('0') << std::setw(4) << prediction_count 
-		   << " " << matched << matched.size()-1 << std::endl; // -1 for trailing space
-	}
+		   << std::setfill('0') << std::setw(4) << prediction_count << (*si) << std::endl;
+	  
+	  if ( matched != "" )  {
+	    file_out << "M" << std::setfill('0') << std::setw(4) << sentence_count << "." 
+		     << std::setfill('0') << std::setw(4) << instance_count << "." 
+		     << std::setfill('0') << std::setw(4) << prediction_count 
+		     << " " << matched << count_keys(matched)-1 << std::endl; // -1 for trailing space
+	  }
 	}
 	prediction_count++;
 	si++;
@@ -628,7 +632,7 @@ int pdt2( Logfile& l, Config& c ) {
 
 	// We need to skip the letter context as well now.
 	//
-	(void)explode( token, letters ); // PJB: TODO, ICUify
+	(void)explode( token, letters );
 	for ( int j = 0; j < letters.size(); j++ ) {
 	  letter = letters.at(j);
 	  ctx0.push( letter );
@@ -1000,6 +1004,20 @@ void generate_tree( Timbl::TimblAPI* My_Experiment, Context& ctx, std::vector<st
 
 // --
 
+// Count UTF-8 letters.
+// Quick&dirty hack, pdt should be re-written (some day).
+//
+#ifndef HAVE_ICU
+size_t count_keys(std::string& line) {
+  return line.size();
+}
+#else
+size_t count_keys(std::string& line) {
+  UnicodeString ustr = UnicodeString::fromUTF8(line);
+  return ustr.length();
+}
+#endif
+
 // foo -> f o o
 //
 #ifndef HAVE_ICU
@@ -1233,6 +1251,11 @@ void add_element(TiXmlElement* ele, const std::string& t, const std::string& v) 
 Letter only, with a dummy wrd ibase, and no "ds" parameter:
 ../../wopr -l -r pdt2web -p lc0:8,timbl0:'-a1 +D',ibasefile0:nyt.3e7.10000.lt8m1_-a1+D.ibase,lc1:2,
                             timbl1:'-a1 +D',ibasefile1:dummy.l2r0_-a1+D.ibase,dl:5,users:10
+other terminal:
+echo "START" | nc localhost 1984 
+echo "FEED 0 T" | nc localhost 1984 
+echo "FEED 0 h" | nc localhost 1984 
+echo "GEN 0" | nc localhost 1984 
 */
 int pdt2web( Logfile& l, Config& c ) {
   l.log( "work in progress pdt2web" );
@@ -1548,7 +1571,7 @@ int pdt2web( Logfile& l, Config& c ) {
 	  break;
 	}
       }
-      l.log( "Assinging "+to_str(num)+" to request." );
+      l.log( "Assigning "+to_str(num)+" to request." );
       TiXmlDocument res_doc;
       TiXmlDeclaration *decl = new TiXmlDeclaration( "1.0", "", "" );
       TiXmlElement     *element = new TiXmlElement( "result" );
