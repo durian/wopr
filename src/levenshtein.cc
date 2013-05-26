@@ -326,7 +326,7 @@ int levenshtein( Logfile& l, Config& c ) {
   l.log( "aaaabbbb-bbbbaaaa: "+to_str( lev_distance( "aaaabbbb", "bbbbaaaa" )));
   l.log( "sor-sör: "+to_str( lev_distance( "sor", "sör" )));
   l.log( "transpåöx-transpöåx: "+to_str( lev_distance( "transpåöx", "transpöåx" )));
-  l.log( "källardörrhål-källardörrhål: "+to_str( lev_distance( "källardörrhål", "källardörhål" )));
+  l.log( "källardörrhål-källardörhål: "+to_str( lev_distance( "källardörrhål", "källardörhål" )));
   return 0;
 }
 
