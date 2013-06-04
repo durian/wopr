@@ -1,5 +1,5 @@
 // ---------------------------------------------------------------------------
-// $Id: levenshtein.cc 16145 2013-05-30 08:01:32Z pberck $
+// $Id: levenshtein.cc 16181 2013-06-04 11:46:56Z pberck $
 // ---------------------------------------------------------------------------
 
 /*****************************************************************************
@@ -41,6 +41,7 @@
 #include <cstdlib>
 #include <cerrno>
 #include <cstring>
+#include <functional> 
 
 #include <unistd.h>
 #include <sys/types.h>
@@ -81,8 +82,18 @@
 #include "SocketBasics.h"
 #endif
 
-#define BACKLOG 5     // how many pending connections queue will hold
+#define BACKLOG 5        // how many pending connections queue will hold
 #define MAXDATASIZE 2048 // max number of bytes we can get at once 
+
+char toLowerCase(char c) {
+    return char( std::tolower(static_cast<unsigned char>( c ))); 
+}
+std::string toLowerCase( std::string const& s ) {
+  std::string result( s.length(), '\0' );
+  setlocale( LC_ALL, "" ); 
+  std::transform( s.begin(), s.end(), result.begin(), std::ptr_fun<char>(toLowerCase) );
+  return result;
+}
 
 int min3( int a, int b, int c ) {
   int mi;
@@ -98,7 +109,7 @@ int min3( int a, int b, int c ) {
 }
 
 #ifndef HAVE_ICU
-int lev_distance(const std::string& source, const std::string& target, int mld) {
+int lev_distance(const std::string& source, const std::string& target, int mld, bool cs) {
 
   // Step 1
 
@@ -152,11 +163,19 @@ int lev_distance(const std::string& source, const std::string& target, int mld) 
       // Step 5
 
       int cost;
-      if (s_i == t_j) {
-        cost = 0;
-      } else {
-        cost = 1;
-      }
+	  if ( cs ) { //case sensitive
+		if (s_i == t_j) {
+		  cost = 0;
+		} else {
+		  cost = 1;
+		}
+	  } else {
+		if ( toLowerCase(s_i) == toLowerCase(t_j) ) {
+		  cost = 0;
+		} else {
+		  cost = 1;
+		}
+	  }
 
       // Step 6
 
@@ -179,34 +198,51 @@ int lev_distance(const std::string& source, const std::string& target, int mld) 
 	// Code gives LD:2 to a transposition. If TRANSPLD2
 	// is not defined, a transposition is LD:1
 #ifdef TRANSPLD2
-        if ( source[i-2] != t_j ) {
-	  trans++;
-	}
-        if ( s_i != target[j-2] ) {
-	  trans++;
-	}
+		if ( cs ) { // case sensitive
+		  if ( source[i-2] != t_j ) {
+			trans++;
+		  }
+		  if ( s_i != target[j-2] ) {
+			trans++;
+		  }
+		} else {
+		  if ( toLowerCase(source[i-2]) != toLowerCase(t_j) ) {
+			trans++;
+		  }
+		  if ( toLowerCase(s_i) != toLowerCase(target[j-2]) ) {
+			trans++;
+		  }
+		}
 #endif
-	if ( source[i-2] != t_j ) {
-	  if ( s_i != target[j-2] ) {
-	    trans++;
-	  }
-	}
-
+		if ( cs ) { // case sensitive
+		  if ( source[i-2] != t_j ) {
+			if ( s_i != target[j-2] ) {
+			  trans++;
+			}
+		  }
+		} else {
+		  if ( toLowerCase(source[i-2]) != toLowerCase(t_j) ) {
+			if ( toLowerCase(s_i) != toLowerCase(target[j-2]) ) {
+			  trans++;
+			}
+		  }
+		}
+		
         if ( cell > trans ) {
-	  cell = trans;
-	}
+		  cell = trans;
+		}
       }
-
+	  
       matrix[i][j] = cell;
     }
   }
-
+  
   // Step 7
 
   return matrix[n][m];
 }
 #else
-int lev_distance(const std::string& source, const std::string& target, int mld) {
+int lev_distance(const std::string& source, const std::string& target, int mld, bool cs) {
 
   UnicodeString u_source = UnicodeString::fromUTF8(source);
   UnicodeString u_target = UnicodeString::fromUTF8(target);
@@ -264,11 +300,20 @@ int lev_distance(const std::string& source, const std::string& target, int mld) 
       // Step 5
 
       int cost;
-      if (s_i == t_j) {
-        cost = 0;
-      } else {
-        cost = 1;
-      }
+	  if ( cs ) { // case sensitive
+		if (s_i == t_j) {
+		  cost = 0;
+		} else {
+		  cost = 1;
+		}
+	  } else {
+		//UChar32 	u_foldCase (UChar32 c, uint32_t options)
+		if (u_foldCase(s_i, 0) == u_foldCase(t_j, 0)) {
+		  cost = 0;
+		} else {
+		  cost = 1;
+		}
+	  }
 
       // Step 6
 
@@ -292,26 +337,41 @@ int lev_distance(const std::string& source, const std::string& target, int mld) 
 	// Code gives LD:2 to a transposition. If TRANSPLD2
 	// is not defined, a transposition is LD:1
 
-	if ( u_source.charAt(i-2) != t_j ) {
-	  //std::cerr << char(t_j) << char(u_source.charAt(i-2)) << std::endl;
-	  trans++;
-	} 
-	if ( s_i != u_target.charAt(j-2) ) {
-	  trans++;
-	}
+		if ( cs ) { // case sensitive
+		  if ( u_source.charAt(i-2) != t_j ) {
+			//std::cerr << char(t_j) << char(u_source.charAt(i-2)) << std::endl;
+			trans++;
+		  } 
+		  if ( s_i != u_target.charAt(j-2) ) {
+			trans++;
+		  }
 
-	if ( u_source.charAt(i-2) != t_j ) {
-	  if ( s_i != u_target.charAt(j-2) ) {
-	    trans++;
-	  }
-	}
+		  if ( u_source.charAt(i-2) != t_j ) {
+			if ( s_i != u_target.charAt(j-2) ) {
+			  trans++;
+			}
+		  }
+		} else { // not cs
+		  if ( u_foldCase(u_source.charAt(i-2), 0) != u_foldCase(t_j, 0) ) {
+			//std::cerr << char(t_j) << char(u_source.charAt(i-2)) << std::endl;
+			trans++;
+		  } 
+		  if ( u_foldCase(s_i, 0) != u_foldCase(u_target.charAt(j-2), 0) ) {
+			trans++;
+		  }
+		  
+		  if ( u_foldCase(u_source.charAt(i-2), 0) != u_foldCase(t_j, 0) ) {
+			if ( u_foldCase(s_i, 0) != u_foldCase(u_target.charAt(j-2), 0) ) {
+			  trans++;
+			}
+		  }
+		}
 
         if ( cell > trans ) {
-	  cell = trans;
-	}
+		  cell = trans;
+		}
       }
 #endif
-
       matrix[i][j] = cell;
     }
   }
@@ -325,24 +385,30 @@ int lev_distance(const std::string& source, const std::string& target, int mld) 
 int levenshtein( Logfile& l, Config& c ) {
 
   int mld = 5;
-  l.log( "gumbo-gambol: "+to_str( lev_distance( "gumbo", "gambol", mld )));
-  l.log( "peter-petr: "+to_str( lev_distance( "peter", "petr", mld )));
-  l.log( "switch-swicth: "+to_str( lev_distance( "switch", "swicth", mld )));
-  l.log( "noswitch-noswitch: "+to_str( lev_distance( "noswitch", "noswitch", mld )));
-  l.log( "123-312: "+to_str( lev_distance( "123", "312", mld )));
-  l.log( "123-321: "+to_str( lev_distance( "123", "321", mld )));
-  l.log( "12-123: "+to_str( lev_distance( "12", "123", mld )));
-  l.log( "123-12: "+to_str( lev_distance( "123", "12", mld )));
-  l.log( "aaaa-aaaaa: "+to_str( lev_distance( "aaaa", "aaaaa", mld )));
-  l.log( "aaaaa-aaaa: "+to_str( lev_distance( "aaaaa", "aaaa", mld )));
-  l.log( "aaaabbbb-aaaabbbb: "+to_str( lev_distance( "aaaabbbb", "aaaabbbb", mld )));
-  l.log( "aaaabbbb-aaababbb: "+to_str( lev_distance( "aaaabbbb", "aaababbb", mld )));
-  l.log( "aaaabbbb-aabababb: "+to_str( lev_distance( "aaaabbbb", "aabababb", mld )));
-  l.log( "aaaabbbb-bbbbaaaa: "+to_str( lev_distance( "aaaabbbb", "bbbbaaaa", mld )));
-  l.log( "sor-sör: "+to_str( lev_distance( "sor", "sör", mld )));
-  l.log( "transpåöx-transpöåx: "+to_str( lev_distance( "transpåöx", "transpöåx", mld )));
-  l.log( "källardörrhål-källardörrhål: "+to_str( lev_distance( "källardörrhål", "källardörhål", mld )));
-  l.log( "至高-高至"+to_str( lev_distance( "至高", "高至", mld )));
+  int cs = true;
+  l.log( "gumbo-gambol: "+to_str( lev_distance( "gumbo", "gambol", mld, cs )));
+  l.log( "peter-petr: "+to_str( lev_distance( "peter", "petr", mld, cs )));
+  l.log( "switch-swicth: "+to_str( lev_distance( "switch", "swicth", mld, cs )));
+  l.log( "noswitch-noswitch: "+to_str( lev_distance( "noswitch", "noswitch", mld, cs )));
+  l.log( "123-312: "+to_str( lev_distance( "123", "312", mld, cs )));
+  l.log( "123-321: "+to_str( lev_distance( "123", "321", mld, cs )));
+  l.log( "12-123: "+to_str( lev_distance( "12", "123", mld, cs )));
+  l.log( "123-12: "+to_str( lev_distance( "123", "12", mld, cs )));
+  l.log( "aaaa-aaaaa: "+to_str( lev_distance( "aaaa", "aaaaa", mld, cs )));
+  l.log( "aaaaa-aaaa: "+to_str( lev_distance( "aaaaa", "aaaa", mld, cs )));
+  l.log( "aaaabbbb-aaaabbbb: "+to_str( lev_distance( "aaaabbbb", "aaaabbbb", mld, cs )));
+  l.log( "aaaabbbb-aaababbb: "+to_str( lev_distance( "aaaabbbb", "aaababbb", mld, cs )));
+  l.log( "aaaabbbb-aabababb: "+to_str( lev_distance( "aaaabbbb", "aabababb", mld, cs )));
+  l.log( "aaaabbbb-bbbbaaaa: "+to_str( lev_distance( "aaaabbbb", "bbbbaaaa", mld, cs )));
+  l.log( "sor-sör: "+to_str( lev_distance( "sor", "sör", mld, cs )));
+  l.log( "transpåöx-transpöåx: "+to_str( lev_distance( "transpåöx", "transpöåx", mld, cs )));
+  l.log( "källardörrhål-källardörrhål: "+to_str( lev_distance( "källardörrhål", "källardörhål", mld, cs )));
+  l.log( "至高-高至"+to_str( lev_distance( "至高", "高至", mld, cs )));
+  l.log( "Sor-sor (cs): "+to_str( lev_distance( "Sor", "sor", mld, true )));
+  l.log( "Sor-sor (  ): "+to_str( lev_distance( "Sor", "sor", mld, false )));
+  l.log( "ABC-abc (cs): "+to_str( lev_distance( "ABC", "abc", mld, true )));
+  l.log( "ACB-abc (  ): "+to_str( lev_distance( "ACB", "abc", mld, false )));
+
   return 0;
 }
 
@@ -388,8 +454,7 @@ void distr_examine( const Timbl::ValueDistribution *vd, const std::string target
 // tv = My_Experiment->Classify( a_line, vd );
 //
 void distr_spelcorr( const Timbl::ValueDistribution *vd, const std::string& target, std::map<std::string,int>& wfreqs,
-		     std::vector<distr_elem*>& distr_vec,
-					 int mld, double min_ratio, double target_lexfreq) {
+		     std::vector<distr_elem*>& distr_vec, int mld, double min_ratio, double target_lexfreq, bool cs) {
 
   int    cnt             = 0;
   int    distr_count     = 0;
@@ -414,7 +479,7 @@ void distr_spelcorr( const Timbl::ValueDistribution *vd, const std::string& targ
     std::string tvs  = it->second->Value()->Name(); // element in distribution
     double      wght = it->second->Weight(); // frequency of distr. element
 	// LD shortcut, if stringlength differs more than mld, we don't need to try
-    int         ld   = lev_distance( target, tvs, mld ); // LD with target (word in text)
+    int         ld   = lev_distance( target, tvs, mld, cs ); // LD with target (word in text)
     
     // If the ld of the word is less than the maximum ld (mld parameter),
     // we include the result in our output.
@@ -506,6 +571,8 @@ int correct( Logfile& l, Config& c ) {
   // maximum target frequency (word under scrutiny is not in dist or (<=) very low freq)
   int                max_tf           = stoi( c.get_value( "max_tf", "1" ));
   int                skip             = 0;
+  bool               cs               = stoi( c.get_value( "cs", "1" )) == 1; //case insensitive levenshtein cs:0
+
   Timbl::TimblAPI   *My_Experiment;
   std::string        distrib;
   std::vector<std::string> distribution;
@@ -535,6 +602,7 @@ int correct( Logfile& l, Config& c ) {
   l.log( "max_distr:  "+to_str(max_distr) );
   l.log( "min_ratio:  "+to_str(min_ratio) );
   l.log( "max_tf:     "+to_str(max_tf) );
+  l.log( "cs:         "+to_str(cs) );
   //l.log( "OUTPUT:     "+output_filename );
   l.dec_prefix();
 
@@ -839,70 +907,9 @@ int correct( Logfile& l, Config& c ) {
       // Skip words shorter than mwl.
       //
       std::vector<distr_elem*> distr_vec;
-#undef OLDMETHOD
-#ifdef OLDMETHOD
-      it = vd->begin();
-      std::map<std::string,int>::iterator tvsfi;
-      double factor = 0.0;
-      // if in_distr==true, we can look if att ld=1, and then at freq.factor!
-      if ( (cnt <= max_distr) && (target.length() > mwl) && (in_distr == false) ) {
-		while ( it != vd->end() ) {
-		  
-		  // 20100111: freq voorspelde woord : te voorspellen woord > 1
-		  //             uit de distr          target
-		  
-		  std::string tvs  = it->second->Value()->Name();
-		  double      wght = it->second->Weight();
-		  int ld = lev_distance( target, tvs, mld );
-		  
-		  // If the ld of the word is less than the minimum,
-		  // we include the result in our output.
-		  //
-		  if (
-			  ( ld <= mld ) && 
-			  (entropy <= max_ent) // should be outside loop
-			  ) { 
-			//
-			// So here we check frequency of tvs from the distr. with
-			// frequency of the target.
-			// 
-			int tvs_lf = 0;
-			double factor = 0.0;
-			wfi = wfreqs.find( tvs );
-			if ( (wfi != wfreqs.end()) && (target_lexfreq > 0) ) {
-			  tvs_lf =  (int)(*wfi).second;
-			  factor = tvs_lf / target_lexfreq;
-			}
-			//l.log( tvs+"-"+to_str(tvs_lf)+"/"+to_str(factor) );
-			// If the target is not found (unknown words), we have no
-			// ratio, and we only use the other parameters, ie. this
-			// test falls through.
-			//
-			if ( (target_lexfreq == 0) || (factor >= min_ratio) ) {
-			  //
-			  distr_elem* d = new distr_elem(); 
-			  d->name = tvs;
-			  d->freq = wght;
-			  d->ld = ld;
-			  tvsfi = wfreqs.find( tvs );
-			  if ( tvsfi == wfreqs.end() ) {
-				d->lexfreq = 0;
-			  } else {
-				d->lexfreq = (double)(*tvsfi).second;
-			  }
-			  
-			  distr_vec.push_back( d );
-			} // factor>min_ratio
-		  }
-		  
-		  ++it;
-		}
-      }
-#else
       if ( (cnt <= max_distr) && (target.length() > mwl) && ((in_distr == false)||(target_freq<=max_tf)) && (entropy <= max_ent) ) {
-		distr_spelcorr( vd, target, wfreqs, distr_vec, mld, min_ratio, target_lexfreq);
+		distr_spelcorr( vd, target, wfreqs, distr_vec, mld, min_ratio, target_lexfreq, cs);
       }
-#endif
 	  
       // Word logprob (ref. Antal's mail 21/11/08)
       // 2 ^ (-logprob(w)) 
@@ -1324,7 +1331,7 @@ int server_sc( Logfile& l, Config& c ) {
 
 		  std::string tvs  = it->second->Value()->Name();
 		  double      wght = it->second->Weight();
-		  int ld = lev_distance( target, tvs, mld );
+		  int ld = lev_distance( target, tvs, mld, true );
 
 		  if ( verbose > 1 ) {
 		    l.log(tvs+": "+to_str(wght)+" ld: "+to_str(ld));
@@ -1777,7 +1784,7 @@ int server_sc_nf( Logfile& l, Config& c ) {
 		
 		std::string tvs  = it->second->Value()->Name();
 	      double      wght = it->second->Weight();
-	      int ld = lev_distance( target, tvs, mld );
+	      int ld = lev_distance( target, tvs, mld, true );
 	      
 	      if ( verbose > 1 ) {
 		l.log(tvs+": "+to_str(wght)+" ld: "+to_str(ld));
