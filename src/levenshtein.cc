@@ -1,9 +1,9 @@
 // ---------------------------------------------------------------------------
-// $Id: levenshtein.cc 16124 2013-05-26 12:55:36Z pberck $
+// $Id: levenshtein.cc 16145 2013-05-30 08:01:32Z pberck $
 // ---------------------------------------------------------------------------
 
 /*****************************************************************************
- * Copyright 2007 - 2011 Peter Berck                                         *
+ * Copyright 2007 - 2013 Peter Berck                                         *
  *                                                                           *
  * This file is part of wopr.                                                *
  *                                                                           *
@@ -98,7 +98,7 @@ int min3( int a, int b, int c ) {
 }
 
 #ifndef HAVE_ICU
-int lev_distance(const std::string& source, const std::string& target) {
+int lev_distance(const std::string& source, const std::string& target, int mld) {
 
   // Step 1
 
@@ -109,6 +109,12 @@ int lev_distance(const std::string& source, const std::string& target) {
   }
   if (m == 0) {
     return n;
+  }
+
+  // Short cut, we ignore LDs > mld, so if the words differ so many characters
+  // we already know enough. The value returned is an approximation...
+  if ( abs(n-m) > mld ) {
+	return abs(n-m);
   }
 
   typedef std::vector< std::vector<int> > Tmatrix; 
@@ -200,7 +206,7 @@ int lev_distance(const std::string& source, const std::string& target) {
   return matrix[n][m];
 }
 #else
-int lev_distance(const std::string& source, const std::string& target) {
+int lev_distance(const std::string& source, const std::string& target, int mld) {
 
   UnicodeString u_source = UnicodeString::fromUTF8(source);
   UnicodeString u_target = UnicodeString::fromUTF8(target);
@@ -215,6 +221,12 @@ int lev_distance(const std::string& source, const std::string& target) {
   }
   if (m == 0) {
     return n;
+  }
+
+  // Short cut, we ignore LDs > mld, so if the words differ so many characters
+  // we already know enough. The value returned is an approximation...
+  if ( abs(n-m) > mld ) {
+	return abs(n-m);
   }
 
   typedef std::vector< std::vector<int> > Tmatrix; 
@@ -312,21 +324,25 @@ int lev_distance(const std::string& source, const std::string& target) {
 
 int levenshtein( Logfile& l, Config& c ) {
 
-  l.log( "gumbo-gambol: "+to_str( lev_distance( "gumbo", "gambol" )));
-  l.log( "peter-petr: "+to_str( lev_distance( "peter", "petr" )));
-  l.log( "switch-swicth: "+to_str( lev_distance( "switch", "swicth" )));
-  l.log( "noswitch-noswitch: "+to_str( lev_distance( "noswitch", "noswitch" )));
-  l.log( "123-312: "+to_str( lev_distance( "123", "312" )));
-  l.log( "123-321: "+to_str( lev_distance( "123", "321" )));
-  l.log( "12-123: "+to_str( lev_distance( "12", "123" )));
-  l.log( "123-12: "+to_str( lev_distance( "123", "12" )));
-  l.log( "aaaabbbb-aaaabbbb: "+to_str( lev_distance( "aaaabbbb", "aaaabbbb" )));
-  l.log( "aaaabbbb-aaababbb: "+to_str( lev_distance( "aaaabbbb", "aaababbb" )));
-  l.log( "aaaabbbb-aabababb: "+to_str( lev_distance( "aaaabbbb", "aabababb" )));
-  l.log( "aaaabbbb-bbbbaaaa: "+to_str( lev_distance( "aaaabbbb", "bbbbaaaa" )));
-  l.log( "sor-sör: "+to_str( lev_distance( "sor", "sör" )));
-  l.log( "transpåöx-transpöåx: "+to_str( lev_distance( "transpåöx", "transpöåx" )));
-  l.log( "källardörrhål-källardörhål: "+to_str( lev_distance( "källardörrhål", "källardörhål" )));
+  int mld = 5;
+  l.log( "gumbo-gambol: "+to_str( lev_distance( "gumbo", "gambol", mld )));
+  l.log( "peter-petr: "+to_str( lev_distance( "peter", "petr", mld )));
+  l.log( "switch-swicth: "+to_str( lev_distance( "switch", "swicth", mld )));
+  l.log( "noswitch-noswitch: "+to_str( lev_distance( "noswitch", "noswitch", mld )));
+  l.log( "123-312: "+to_str( lev_distance( "123", "312", mld )));
+  l.log( "123-321: "+to_str( lev_distance( "123", "321", mld )));
+  l.log( "12-123: "+to_str( lev_distance( "12", "123", mld )));
+  l.log( "123-12: "+to_str( lev_distance( "123", "12", mld )));
+  l.log( "aaaa-aaaaa: "+to_str( lev_distance( "aaaa", "aaaaa", mld )));
+  l.log( "aaaaa-aaaa: "+to_str( lev_distance( "aaaaa", "aaaa", mld )));
+  l.log( "aaaabbbb-aaaabbbb: "+to_str( lev_distance( "aaaabbbb", "aaaabbbb", mld )));
+  l.log( "aaaabbbb-aaababbb: "+to_str( lev_distance( "aaaabbbb", "aaababbb", mld )));
+  l.log( "aaaabbbb-aabababb: "+to_str( lev_distance( "aaaabbbb", "aabababb", mld )));
+  l.log( "aaaabbbb-bbbbaaaa: "+to_str( lev_distance( "aaaabbbb", "bbbbaaaa", mld )));
+  l.log( "sor-sör: "+to_str( lev_distance( "sor", "sör", mld )));
+  l.log( "transpåöx-transpöåx: "+to_str( lev_distance( "transpåöx", "transpöåx", mld )));
+  l.log( "källardörrhål-källardörrhål: "+to_str( lev_distance( "källardörrhål", "källardörhål", mld )));
+  l.log( "至高-高至"+to_str( lev_distance( "至高", "高至", mld )));
   return 0;
 }
 
@@ -373,7 +389,7 @@ void distr_examine( const Timbl::ValueDistribution *vd, const std::string target
 //
 void distr_spelcorr( const Timbl::ValueDistribution *vd, const std::string& target, std::map<std::string,int>& wfreqs,
 		     std::vector<distr_elem*>& distr_vec,
-		     int mld, double min_ratio) {
+					 int mld, double min_ratio, double target_lexfreq) {
 
   int    cnt             = 0;
   int    distr_count     = 0;
@@ -382,7 +398,7 @@ void distr_spelcorr( const Timbl::ValueDistribution *vd, const std::string& targ
   double prob            = 0.0;
   double target_distprob = 0.0;
   double answer_prob     = 0.0;
-  double target_lexfreq  = 0.0;
+  //double target_lexfreq  = 0.0; // now parameter
 
   cnt = vd->size();
   distr_count = vd->totalSize();
@@ -393,13 +409,14 @@ void distr_spelcorr( const Timbl::ValueDistribution *vd, const std::string& targ
   double factor = 0.0;
   
   // NB some of the test are outside this loop (max_distr, in_distr)
-  while ( it != vd->end() ) {
+  while ( it != vd->end() ) { // loop over distribution
     
-    std::string tvs  = it->second->Value()->Name();
-    double      wght = it->second->Weight();
-    int ld = lev_distance( target, tvs );
+    std::string tvs  = it->second->Value()->Name(); // element in distribution
+    double      wght = it->second->Weight(); // frequency of distr. element
+	// LD shortcut, if stringlength differs more than mld, we don't need to try
+    int         ld   = lev_distance( target, tvs, mld ); // LD with target (word in text)
     
-    // If the ld of the word is less than the minimum,
+    // If the ld of the word is less than the maximum ld (mld parameter),
     // we include the result in our output.
     //
     if (
@@ -407,27 +424,33 @@ void distr_spelcorr( const Timbl::ValueDistribution *vd, const std::string& targ
 		( ld <= mld )
 		) { 
       //
-      // So here we check frequency of tvs from the distr. with
+      // So here we check frequency of element from the distr. with
       // frequency of the target. As parameter, we prolly already know it?
-      // 
+      // This is to determine if, even if target is a dictionary word,
+	  // it could be a misspelt word. Calculate the ratio between the
+	  // element from the distribution and the frequency of the target.
+	  // (PJB: should we not check target DISTR frequency?)
       int    tvs_lf = 0;
       double factor = 0.0;
       wfi = wfreqs.find( tvs );
+	  // if we find distr. element in lexicon, and target is in lexicon
       if ( (wfi != wfreqs.end()) && (target_lexfreq > 0) ) {
 		tvs_lf =  (int)(*wfi).second;
 		factor = tvs_lf / target_lexfreq;
       }
       //
-      //std::cerr << tvs << "-" << tvs_lf << "/" << factor << std::endl;
+      // std::cerr << tvs << "-" << tvs_lf << "/" << factor << std::endl;
       // If the target is not found (unknown words), we have no
-      // ratio, and we only use the other parameters, ie. this
-      // test falls through.
+      // ratio, we store the ditribution element (possible correction).
+	  // IF we have a ratio, and it is >= min_ratio, we also store
+	  // this possible correction.
       //
       if ( (target_lexfreq == 0) || (factor >= min_ratio) ) {
 		//
 		distr_elem* d = new distr_elem(); 
 		d->name = tvs;
-		d->freq = ld;
+		d->freq = wght; //was ld. Freq not so useful, can be low for even
+		d->ld = ld;     // a correct to the point classification
 		tvsfi = wfreqs.find( tvs );
 		if ( tvsfi == wfreqs.end() ) {
 		  d->lexfreq = 0;
@@ -436,7 +459,7 @@ void distr_spelcorr( const Timbl::ValueDistribution *vd, const std::string& targ
 		}
 		
 		distr_vec.push_back( d );
-      } // factor>min_ratio
+      } // factor>=min_ratio
     }
     
     ++it;
@@ -595,7 +618,7 @@ int correct( Logfile& l, Config& c ) {
       wfreqs[a_word] = wfreq;
       total_count += wfreq;
       if ( wfreq == 1 ) {
-	++N_1;
+		++N_1;
       }
     }
     file_lexicon.close();
@@ -633,8 +656,6 @@ int correct( Logfile& l, Config& c ) {
     p0 = (double)N_1 / ((double)total_count * total_count);
   }
   //l.log( "P(new_particular) = " + to_str(p0) );
-
-  // Timbl was here
 
   for ( fi = filenames.begin(); fi != filenames.end(); fi++ ) {
     std::string a_file = *fi;
@@ -832,7 +853,7 @@ int correct( Logfile& l, Config& c ) {
 		  
 		  std::string tvs  = it->second->Value()->Name();
 		  double      wght = it->second->Weight();
-		  int ld = lev_distance( target, tvs );
+		  int ld = lev_distance( target, tvs, mld );
 		  
 		  // If the ld of the word is less than the minimum,
 		  // we include the result in our output.
@@ -861,7 +882,8 @@ int correct( Logfile& l, Config& c ) {
 			  //
 			  distr_elem* d = new distr_elem(); 
 			  d->name = tvs;
-			  d->freq = ld;
+			  d->freq = wght;
+			  d->ld = ld;
 			  tvsfi = wfreqs.find( tvs );
 			  if ( tvsfi == wfreqs.end() ) {
 				d->lexfreq = 0;
@@ -878,7 +900,7 @@ int correct( Logfile& l, Config& c ) {
       }
 #else
       if ( (cnt <= max_distr) && (target.length() > mwl) && ((in_distr == false)||(target_freq<=max_tf)) && (entropy <= max_ent) ) {
-		distr_spelcorr( vd, target, wfreqs, distr_vec, mld, min_ratio);
+		distr_spelcorr( vd, target, wfreqs, distr_vec, mld, min_ratio, target_lexfreq);
       }
 #endif
 	  
@@ -895,14 +917,14 @@ int correct( Logfile& l, Config& c ) {
 	       << logprob << ' ' /*<< info << ' '*/ << entropy << ' ';
       file_out << word_lp << ' ';
       int cntr = 0;
-      sort( distr_vec.begin(), distr_vec.end(), distr_elem_cmp_ptr() );
+      sort( distr_vec.begin(), distr_vec.end(), distr_elem_cmprev_ptr() ); //NB: cmprev (versus cmp)
       std::vector<distr_elem*>::const_iterator fi = distr_vec.begin();
       file_out << cnt << " [ ";
       while ( (fi != distr_vec.end()) && (--cntr != 0) ) {
-		file_out << (*fi)->name << ' ' << (double)((*fi)->freq) << ' ';
+		file_out << (*fi)->name << ' ' << (double)((*fi)->freq) << ' '; // print LD or freq? old was LD, now freq
 		delete *fi;
 		fi++;
-      }
+	  }
       distr_vec.clear();
       file_out << "]";
       file_out << std::endl;
@@ -1302,7 +1324,7 @@ int server_sc( Logfile& l, Config& c ) {
 
 		  std::string tvs  = it->second->Value()->Name();
 		  double      wght = it->second->Weight();
-		  int ld = lev_distance( target, tvs );
+		  int ld = lev_distance( target, tvs, mld );
 
 		  if ( verbose > 1 ) {
 		    l.log(tvs+": "+to_str(wght)+" ld: "+to_str(ld));
@@ -1755,7 +1777,7 @@ int server_sc_nf( Logfile& l, Config& c ) {
 		
 		std::string tvs  = it->second->Value()->Name();
 	      double      wght = it->second->Weight();
-	      int ld = lev_distance( target, tvs );
+	      int ld = lev_distance( target, tvs, mld );
 	      
 	      if ( verbose > 1 ) {
 		l.log(tvs+": "+to_str(wght)+" ld: "+to_str(ld));

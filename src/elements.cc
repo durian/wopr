@@ -1,7 +1,7 @@
 // $Id: elements.cc 3329 2009-12-10 07:49:45Z pberck $
 
 /*****************************************************************************
- * Copyright 2008-2009 Peter Berck                                           *
+ * Copyright 2008-2013 Peter Berck                                           *
  *                                                                           *
  * This file is part of wopr.                                                *
  *                                                                           *

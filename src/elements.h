@@ -1,7 +1,7 @@
-// $Id: elements.h 9080 2011-03-23 10:34:23Z pberck $
+// $Id: elements.h 16131 2013-05-27 10:08:32Z pberck $
 
 /*****************************************************************************
- * Copyright 2008 - 2011-2009 Peter Berck                                           *
+ * Copyright 2008 - 2013 Peter Berck                                         *
  *                                                                           *
  * This file is part of wopr.                                                *
  *                                                                           *
@@ -42,6 +42,7 @@ class distr_elem {
   std::string name; 
   double      freq;
   double      lexfreq;
+  int         ld;
 
   distr_elem();
   ~distr_elem();
@@ -55,6 +56,13 @@ class distr_elem_cmp_ptr {
  public:
   bool operator() (const distr_elem* de1, const distr_elem* de2) const {
     return de1->freq < de2->freq;
+  } 
+}; 
+
+class distr_elem_cmprev_ptr {
+ public:
+  bool operator() (const distr_elem* de1, const distr_elem* de2) const {
+    return de2->freq < de1->freq;
   } 
 }; 
 

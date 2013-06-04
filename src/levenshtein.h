@@ -1,8 +1,8 @@
-// $Id: levenshtein.h 14655 2012-04-17 10:43:45Z sloot $
+// $Id: levenshtein.h 16138 2013-05-28 08:38:07Z pberck $
 //
 
 /*****************************************************************************
- * Copyright 2008 - 2011 Peter Berck                                         *
+ * Copyright 2008 - 2013 Peter Berck                                         *
  *                                                                           *
  * This file is part of wopr.                                                *
  *                                                                           *
@@ -29,9 +29,9 @@
 int distance(const std::string&, const std::string&);
 int levenshtein( Logfile&, Config& );
 void distr_spelcorr( const Timbl::ValueDistribution *, const std::string&, std::map<std::string,int>&,
-		     std::vector<distr_elem*>&,int, double);
+					 std::vector<distr_elem*>&,int, double, double);
 int correct( Logfile&, Config& );
-int lev_distance(const std::string&, const std::string&);
+int lev_distance(const std::string&, const std::string&, int);
 int server_sc( Logfile&, Config& );
 int server_sc_nf( Logfile&, Config& );
 
