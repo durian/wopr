@@ -1,3 +1,7 @@
+Changes from uvt/wopr, except xmlserver/folia and libticcl dependencies.
+
+1.36.7	Added mode option to correct.
+
 1.36.6	Selectable case (in)sensitive levenshtein.
 	
 1.35.3	Ko's fixes.
