@@ -1,5 +1,5 @@
 // ---------------------------------------------------------------------------
-// $Id: runrunrun.cc 16212 2013-06-09 10:37:47Z pberck $
+// $Id: runrunrun.cc 16408 2013-08-01 11:47:49Z pberck $
 // ---------------------------------------------------------------------------
 
 /*****************************************************************************
@@ -476,8 +476,6 @@ pt2Func2 get_function( const std::string& a_fname ) {
     return &server3;
   } else if ( a_fname == "server4" ) {
     return &server4;
-  } else if ( a_fname == "xmlserver" ) {
-    return &xmlserver;
   } else if ( a_fname == "mbmt" ) {
     return &mbmt;
   } else if ( a_fname == "server_mg" ) {
@@ -855,7 +853,7 @@ int window_s( Logfile& l, Config& c ) {
 
     a_line = pre_s + a_line + suf_s;
 
-    window( a_line, a_line, ws, 0, false, results );
+    window( a_line, a_line, ws, 0, 0, false, results );
     if ( (skip == 0) || (results.size() >= ws) ) {
       for ( ri = results.begin()+skip; ri != results.end(); ri++ ) {
 	std::string cl = *ri;
@@ -1315,8 +1313,8 @@ int window_line( Logfile& l, Config& c ) {
 // copy ( targets.begin(), targets.end(), new_targets.begin()+to );
 //
 int window( std::string a_line, std::string target_str, 
-	    int lc, int rc, bool var,
-	    std::vector<std::string>& res ) {
+			int lc, int rc, int it, bool var,
+			std::vector<std::string>& res ) {
 
   std::vector<std::string> words; //(10000000,"foo");
   Tokenize( a_line, words );
@@ -1366,11 +1364,13 @@ int window( std::string a_line, std::string target_str,
     
     for ( fi = si-lc+factor; fi != si+1+rc; fi++ ) { // context around si
       if ( fi != si ) {
-	//spacer = (*fi == "") ? "" : " ";
-	windowed_line = windowed_line + *fi + " ";
-      }/* else { // the target, but we don't show that here.
-	windowed_line = windowed_line + "(T) ";
-	}*/
+		//spacer = (*fi == "") ? "" : " ";
+		windowed_line = windowed_line + *fi + " ";
+      } else { 
+		if ( it == 1) {// the target, if it == 1
+		  windowed_line = windowed_line + *fi + " "; // not *(ti+offset) because error from txt
+		}
+	  }
     }
     windowed_line = windowed_line + *(ti+offset); // target. function to make target?
     res.push_back( windowed_line );
@@ -1504,10 +1504,12 @@ int window( std::string a_line, std::string target_str,
 //
 int window_lr( Logfile& l, Config& c ) {
   l.log( "window_lr" );
-  const std::string& filename        = c.get_value( "filename" );
+  std::string        filename        = c.get_value( "filename" );
   int                lc              = stoi( c.get_value( "lc", "2" ));
   int                rc              = stoi( c.get_value( "rc", "0" ));
   int                to              = stoi( c.get_value( "to", "0" ));
+  int                it              = stoi( c.get_value( "it", "0" )); //include target (at end? in place?)
+  std::string        targetfile      = c.get_value( "targetfile", "" ); // file to read targets from, same format/tokenizing
   std::string        output_filename = filename + ".l" + to_str(lc) + 
                                                   "r" + to_str(rc);
   if ( to > 0 ) {
@@ -1515,12 +1517,24 @@ int window_lr( Logfile& l, Config& c ) {
   } else {
     to = 0;
   }
-
+  // PJB: can we combine to and it ?
+  if ( it > 0 ) { // we put the target inside between r and l context
+    output_filename = filename + ".l" + to_str(lc) + 
+      "t" + to_str(it) +
+      "r" + to_str(rc);
+  }
+  if ( (it > 0) && (targetfile == "") ) {
+	targetfile = filename;
+  }
   l.inc_prefix();
   l.log( "filename:  "+filename );
+  if ( it > 0 ) { // only when it parameter is specified.
+	l.log( "targetfile:"+targetfile );
+  }
   l.log( "lc:        "+to_str(lc) );
   l.log( "rc:        "+to_str(rc) );
   l.log( "to:        "+to_str(to) );
+  l.log( "it:        "+to_str(it) );
   l.log( "OUTPUT:    "+output_filename );
   l.dec_prefix();
 
@@ -1536,6 +1550,14 @@ int window_lr( Logfile& l, Config& c ) {
     l.log( "ERROR: cannot load file." );
     return -1;
   }
+  std::ifstream tfile_in;
+  if ( it > 0 ) {
+	tfile_in.open( targetfile.c_str() );
+	if ( ! tfile_in ) {
+	  l.log( "ERROR: cannot load target file." );
+	  return -1;
+	}
+  }
   std::ofstream file_out( output_filename.c_str(), std::ios::out );
   if ( ! file_out ) {
     l.log( "ERROR: cannot write file." );
@@ -1543,30 +1565,41 @@ int window_lr( Logfile& l, Config& c ) {
   }
 
   std::string                        a_line;
+  std::string                        t_line;
   std::vector<std::string>           results;
   std::vector<std::string>::iterator ri;
 
   if ( to == 0 ) {  
     while( std::getline( file_in, a_line ) ) { 
       if ( a_line == "" ) {
-	continue;
+		if ( it > 0 ) { // we assume target file has identical layout/empty lines
+		  std::getline( tfile_in, t_line ); // also forward one line
+		}
+		continue;
       }
-      window( a_line, a_line, lc, rc, false, results ); // line 1303
+	  if ( it > 0 ) {
+		std::getline( tfile_in, t_line );
+	  }
+	  if ( it > 0 ) {
+		window( a_line, t_line, lc, rc, it, false, results ); // line 1317
+	  } else {
+		window( a_line, a_line, lc, rc, it, false, results ); // line 1317
+	  }
       for ( ri = results.begin(); ri != results.end(); ri++ ) {
-	file_out << *ri << "\n";
+		file_out << *ri << "\n";
       }
       results.clear();
     }
   } else {
     while( std::getline( file_in, a_line ) ) { 
-      window( a_line, a_line, lc, rc, false, to, results );
+      window( a_line, a_line, lc, rc, false, to, results ); // line 1390
       for ( ri = results.begin(); ri != results.end(); ri++ ) {
-	file_out << *ri << "\n";
+		file_out << *ri << "\n";
       }
       results.clear();
     }
   }
-
+  
   file_out.close();
   file_in.close();
 
