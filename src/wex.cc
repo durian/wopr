@@ -223,8 +223,8 @@ int multi( Logfile& l, Config& c ) {
 
       Timbl::TimblAPI *timbl = classifier->get_exp();
 
-      //      pattern target  lc    rc  backoff
-      window( a_line, a_line, win_s, 0, false, results ); 
+      //      pattern target  lc    rc  it backoff
+      window( a_line, a_line, win_s, 0, 0, false, results ); 
 
       // For each classifier, make data and run. We need to specify how to
       // make data. We have the ws parameter in the Classifier.

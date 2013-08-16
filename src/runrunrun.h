@@ -1,4 +1,4 @@
-// $Id: runrunrun.h 14700 2012-04-26 09:29:25Z sloot $
+// $Id: runrunrun.h 16408 2013-08-01 11:47:49Z pberck $
 //
 
 /*****************************************************************************
@@ -54,10 +54,9 @@ int ngram_s( Logfile&, Config& );
 int ngram_list( Logfile&, Config& );
 int prepare( Logfile&, Config& );
 int arpa( Logfile&, Config& );
-int window( std::string, std::string, int, int, bool, bool, bool, 
-	    std::vector<std::string>& );
-int window( std::string, std::string, int, int, bool, int, std::vector<std::string>& );
-int window( std::string, std::string, int, int, int, std::vector<std::string>& );
+int window( std::string, std::string, int, int, bool, bool, bool, std::vector<std::string>& );
+int window( std::string, std::string, int, int, int, bool, std::vector<std::string>& );//plain, 1317, ti added
+int window( std::string, std::string, int, int, bool, int, std::vector<std::string>& );//with to, 1390
 int window_line( Logfile&, Config& );
 int window_lr( Logfile&, Config& );
 int window_line2( Logfile&, Config& );
@@ -85,4 +84,5 @@ int pplx_simple( Logfile&, Config& );
 bool file_exists( Logfile&, Config&, const std::string& );
 bool contains_id( const std::string&, const std::string& );
 int test_wopr( Logfile&, Config& );
+int kvs( Logfile&, Config& );
 #endif
