@@ -508,6 +508,8 @@ pt2Func2 get_function( const std::string& a_fname ) {
     return &multi_gated;
   } else if ( a_fname == "correct" ) {
     return &correct;
+  } else if ( a_fname == "mcorrect" ) {
+    return &mcorrect;
   } else if ( a_fname == "generate" ) {
     return &generate;
   } else if ( a_fname == "generate_server" ) {
