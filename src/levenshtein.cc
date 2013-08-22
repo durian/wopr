@@ -1979,9 +1979,12 @@ int mcorrect( Logfile& l, Config& c ) {
   int                max_tf           = stoi( c.get_value( "max_tf", "1" ));
   // minimum frequency of all words in the distribution
   int                min_df           = stoi( c.get_value( "min_df", "0" ));
+  // offset for triggerpos, from the right, so 0 is the target position
+  int                offset           = stoi( c.get_value( "offset", "0" ));
   int                skip             = 0;
   bool               cs               = stoi( c.get_value( "cs", "1" )) == 1; //case insensitive levenshtein cs:0
   bool               typo_only        = stoi( c.get_value( "typos", "0" )) == 1;// typos only
+  bool               bl               = stoi( c.get_value( "bl", "0" )) == 1; //run baseline
 
   Timbl::TimblAPI   *My_Experiment;
   std::string        distrib;
@@ -2017,7 +2020,9 @@ int mcorrect( Logfile& l, Config& c ) {
   l.log( "min_ratio:  "+to_str(min_ratio) );
   l.log( "max_tf:     "+to_str(max_tf) );
   l.log( "min_df:     "+to_str(min_df) );
+  l.log( "offset:     "+to_str(offset) );
   l.log( "cs:         "+to_str(cs) );
+  l.log( "bl:         "+to_str(bl) );
   //l.log( "OUTPUT:     "+output_filename );
   l.dec_prefix();
 
@@ -2058,48 +2063,6 @@ int mcorrect( Logfile& l, Config& c ) {
     return 0;
   }
 
-  // Read configfile with ibase definitions
-  // --------------------------------------
-
-  std::vector<Expert*> exs;
-  std::vector<Expert*>::iterator exi;
-  std::map<std::string,Expert*> triggers; // reverse list, trigger to expert
-
-  if ( configfile != "" ) {
-    l.log( "Reading classifiers." );
-	std::string a_line;
-	std::vector<std::string> words;
-    std::ifstream ifs_config( configfile.c_str() );
-    if ( ! ifs_config ) {
-      l.log( "ERROR: cannot load configfile." );
-      return -1;
-    }
-	while( std::getline( ifs_config, a_line )) {
-	  if ( a_line.length() == 0 ) {
-		continue;
-	  }
-	  if ( a_line.at(0) == '#' ) {
-		continue;
-	  }
-	  words.clear();
-	  Tokenize( a_line, words, ' ' );
-	  if ( words.size() < 2 ) {
-		continue;
-	  }
-	  std::string ibf = words[0]; // name of ibasefile to read
-	  l.log( "EXPERT: "+ibf );
-	  Expert *e = new Expert("a", 1);
-	  e->set_ibasefile(ibf);
-	  e->set_timbl( timbl );
-	  e->init();
-	  for ( int i = 1; i < words.size(); i++ ) {
-		triggers[words[i]] = e;
-		l.log( "TRIGGER: "+words[i] );
-	  }
-	}
-  }
-  l.log( "Instance bases loaded." );
-
   // Load lexicon. NB: hapaxed lexicon is different? Or add HAPAX entry?
   //
   int wfreq;
@@ -2132,6 +2095,63 @@ int mcorrect( Logfile& l, Config& c ) {
     file_lexicon.close();
     l.log( "Read lexicon (total_count="+to_str(total_count)+")." );
   }
+
+  // Read configfile with ibase definitions
+  // --------------------------------------
+
+  std::vector<Expert*> exs;
+  std::vector<Expert*>::iterator exi;
+  std::map<std::string,Expert*> triggers; // reverse list, trigger to expert
+  std::map<std::string,int> called; // counter
+
+  if ( configfile != "" ) {
+    l.log( "Reading classifiers." );
+	std::string a_line;
+	std::vector<std::string> words;
+    std::ifstream ifs_config( configfile.c_str() );
+    if ( ! ifs_config ) {
+      l.log( "ERROR: cannot load configfile." );
+      return -1;
+    }
+	while( std::getline( ifs_config, a_line )) {
+	  if ( a_line.length() == 0 ) {
+		continue;
+	  }
+	  if ( a_line.at(0) == '#' ) {
+		continue;
+	  }
+	  words.clear();
+	  Tokenize( a_line, words, ' ' );
+	  if ( words.size() < 2 ) {
+		continue;
+	  }
+	  std::string ibf = words[0]; // name of ibasefile to read
+	  l.log( "EXPERT: "+ibf );
+	  Expert *e = new Expert("a", 1);
+	  e->set_ibasefile(ibf);
+	  e->set_timbl( timbl );
+	  e->init();
+	  int hi_freq = 0;
+	  for ( int i = 1; i < words.size(); i++ ) {
+		std::string tr = words[i];
+		triggers[ tr ] = e;
+		called[ tr ] = 0;
+		l.log( "TRIGGER: "+tr );
+		// lookup if baseline
+		if ( bl == true ) {
+		  std::map<std::string,int>::iterator wfi = wfreqs.find( tr );
+		  if ( wfi != wfreqs.end() ) {
+			int tr_freq = (int)(*wfi).second;
+			if ( tr_freq > hi_freq ) {
+			  e->set_highest( tr );
+			  e->set_highest_f( tr_freq );
+			}
+		  }
+		}
+	  }
+	}
+  }
+  l.log( "Instance bases loaded." );
   
   // If we want smoothed counts, we need this file...
   // Make mapping <int, double> from c to c* ?
@@ -2221,7 +2241,6 @@ int mcorrect( Logfile& l, Config& c ) {
 	std::map<std::string, Expert*>::iterator tsi; //triggers 
 	Expert *e = NULL; // Expert used
 	int pos;
-	int offset = 1;
 	std::string trigger;
 
     while( std::getline( file_in, classify_line )) {
@@ -2277,10 +2296,10 @@ int mcorrect( Logfile& l, Config& c ) {
 		}
 
 		// Do we Timbl, check triggers.
-		pos     = words.size()-offset;
+		pos     = words.size()-1-offset;
 		pos     = (pos < 0) ? 0 : pos;
 		trigger = words[pos];
-		l.log( "trigger: "+trigger);
+		//l.log( "trigger: "+trigger);
 
 		tsi = triggers.find( trigger );
 		if ( tsi != triggers.end() ) {
@@ -2290,6 +2309,16 @@ int mcorrect( Logfile& l, Config& c ) {
 		}
 
 		if ( e == NULL ) {
+		  // We print a dummy line, same format as normal experiments.
+		  file_out << a_line << " (" << target << ") 0 0 1 1 [ ]\n";
+		  continue;
+		}
+
+		if ( bl == true ) {
+		  // We print a dummy line, same format as normal experiments.
+		  file_out << a_line << " (" << e->get_highest() << ") 0 0 1 1 [ "+e->get_highest()+" "+to_str(e->get_highest_f())+" ]\n";
+		  e->call();
+		  called[trigger] += 1; //we know it exists
 		  continue;
 		}
 
@@ -2297,8 +2326,11 @@ int mcorrect( Logfile& l, Config& c ) {
 		// Do we change this answer to what is in the distr. (if it is?)
 		//
 		tv = e->My_Experiment->Classify( a_line, vd );
+		e->call();
+		called[trigger] += 1; //we know it exists
 		if ( ! tv ) {
 		  l.log( "ERROR: Timbl returned a classification error, aborting." );
+		  l.log( "ERROR: "+a_line );
 		  break;
 		}
 		std::string answer = tv->Name();
@@ -2461,6 +2493,14 @@ int mcorrect( Logfile& l, Config& c ) {
       l.log( "Correct/total: " + to_str(correct / (double)sentence_wordcount) );
     }
 	
+	// print call statistics for triggers.
+	//
+	std::map<std::string,int>::const_iterator ci = called.begin();
+	while ( ci != called.end() ) {
+	  l.log( ci->first+": "+to_str(ci->second) );
+	  ci++;
+	}
+
     c.add_kv( "sc_file", output_filename );
     l.log( "SET sc_file to "+output_filename );
 

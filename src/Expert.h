@@ -27,6 +27,9 @@ class Expert {
   std::string trigger;
   int         offset;
   std::string timbl;
+  int         called;
+  std::string highest;
+  int         highest_f;
 #ifdef TIMBL
   Timbl::TimblAPI                *My_Experiment;
   const Timbl::ValueDistribution *vd;
@@ -36,13 +39,15 @@ class Expert {
   //! Constructor.
   //!
   Expert( const std::string& n ) {
-	id      = n;
-	type    = 1;
+	id     = n;
+	type   = 1;
+	called = 0;
   }
 
   Expert( const std::string& n, int t ) {
-	id      = n;
-	type    = t;
+	id     = n;
+	type   = t;
+	called = 0;
   }
 
   //! Destructor.
@@ -71,11 +76,32 @@ class Expert {
     return trigger;
   }
 
+  void set_highest( const std::string& h ) {
+    highest = h;
+  }
+  const std::string& get_highest() {
+    return highest;
+  }
+
+  void set_highest_f( int h ) {
+    highest_f = h;
+  }
+  int get_highest_f() {
+    return highest_f;
+  }
+
   void set_offset( int p ) {
     offset = p;
   }
   int get_offsetpos() {
     return offset;
+  }
+
+  void call() {
+	called += 1;
+  }
+  int get_called() {
+	return called;
   }
 
   void init() {
