@@ -28,6 +28,10 @@ OS X
 
 ./configure --with-timbl=/Users/pberck/install/
 
+Something like this might be needed:
+
+export DYLD_LIBRARY_PATH=$DYLD_LIBRARY_PATH:/usr/local/Cellar/icu4c/50.1/lib
+
 Debian 
 ======
 
